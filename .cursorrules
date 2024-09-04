@@ -1,0 +1,5 @@
+Use arrow function syntax unless instructed otherwise.
+Add comments to explain code.
+Always use shadcn-ui components.
+Prefer server actions over API routes.
+Use separations of concerns and colocation best practices when creating complicated features.
