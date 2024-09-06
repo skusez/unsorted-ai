@@ -1,5 +1,5 @@
 import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react'
-import { cookieStorage, createStorage } from 'wagmi'
+import { cookieStorage, createStorage, webSocket } from 'wagmi'
 import { mainnet, arbitrum } from 'wagmi/chains'
 
 // 1. Get projectId at https://cloud.walletconnect.com
