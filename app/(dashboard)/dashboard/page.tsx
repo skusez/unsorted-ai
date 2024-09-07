@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { ExternalLink, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -24,21 +24,6 @@ import {
 } from "@/components/ui/card";
 import React from "react";
 import Link from "next/link";
-import { LexicalComposer } from "@lexical/react/LexicalComposer";
-import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-import { ContentEditable } from "@lexical/react/LexicalContentEditable";
-import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import {
-  $getRoot,
-  $createParagraphNode,
-  $createTextNode,
-  SerializedLexicalNode,
-  LexicalNode,
-  LexicalEditor,
-  SerializedEditorState,
-} from "lexical";
-import { parseEditorState } from "lexical/LexicalUpdates";
 type Project = {
   id: number;
   image: string;
@@ -310,40 +295,6 @@ const fetchProjects = async ({ pageParam = 0 }) => {
     nextCursor: pageParam + 10 < projects.length ? pageParam + 10 : undefined,
   };
 };
-const ProjectDescription = ({
-  description,
-}: {
-  description: SerializedEditorState;
-}) => {
-  const initialConfig = {
-    namespace: "project-description",
-    editable: false,
-    editorState: getEditorState(description),
-    onError: (error) => {
-      console.error("Lexical error:", error);
-    },
-    nodes: [...Nodes],
-    theme: LexicalTheme,
-  };
-  return (
-    <LexicalComposer
-      initialConfig={{
-        namespace: "project-description",
-        editable: false,
-        onError: (error) => {
-          console.error("Lexical error:", error);
-        },
-        editorState: parseEditorState(description, editor),
-      }}
-    >
-      <RichTextPlugin
-        contentEditable={<ContentEditable className="outline-none" />}
-        placeholder={<div>No description available</div>}
-        ErrorBoundary={LexicalErrorBoundary}
-      />
-    </LexicalComposer>
-  );
-};
 
 export default function ProjectCards() {
   const [search, setSearch] = useState("");
@@ -418,7 +369,10 @@ export default function ProjectCards() {
                 </CardHeader>
                 <CardContent className="space-y-2 flex-grow">
                   <div className="text-sm text-muted-foreground h-20 overflow-y-auto">
-                    <ProjectDescription description={project.description} />
+                    {
+                      JSON.parse(project.description).root.children[0]
+                        .children[0].text
+                    }
                   </div>
                   <div>
                     <span className="text-sm">

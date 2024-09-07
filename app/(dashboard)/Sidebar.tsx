@@ -28,47 +28,65 @@ const navItems = [
   { href: "/dashboard/analytics", icon: LineChartIcon, label: "Analytics" },
 ];
 
-export function Sidebar() {
+export function Sidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(false);
-  const isActive = (href: string) => {
-    return pathname === href;
-  };
+  const isActive = (href: string) => pathname === href;
 
   return (
-    <aside
-      className={`fixed inset-y-0 left-0 z-10 flex flex-col border-r bg-background transition-all duration-300 ease-in-out ${
-        isExpanded ? "w-48" : "w-14"
-      }`}
-    >
-      <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
-        <TooltipProvider>
-          {navItems.map(({ href, icon, label }) => (
+    <>
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r bg-background transition-all duration-300 ease-in-out ${
+          isExpanded ? "w-64" : "w-16 items-center"
+        }`}
+      >
+        <div className="flex items-center justify-between p-4">
+          {isExpanded && (
+            <span className="text-lg truncate font-semibold">Your Logo</span>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto"
+            onClick={() => {
+              setIsExpanded(!isExpanded);
+            }}
+          >
+            {isExpanded ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+          </Button>
+        </div>
+        <nav className="flex flex-col gap-2 p-4">
+          <TooltipProvider>
+            {navItems.map(({ href, icon: Icon, label }) => (
+              <NavItem
+                key={href}
+                href={href}
+                icon={Icon}
+                label={label}
+                isExpanded={isExpanded}
+                isActive={isActive(href)}
+              />
+            ))}
+          </TooltipProvider>
+        </nav>
+        <div className="mt-auto p-4">
+          <TooltipProvider>
             <NavItem
-              key={href}
-              href={href}
-              icon={icon}
-              label={label}
+              href="/settings"
+              icon={SettingsIcon}
+              label="Settings"
               isExpanded={isExpanded}
-              isActive={isActive(href)}
+              isActive={isActive("/settings")}
             />
-          ))}
-        </TooltipProvider>
-      </nav>
-      <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button onClick={() => setIsExpanded(!isExpanded)}>
-                {isExpanded ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Toggle Sidebar</TooltipContent>
-          </Tooltip>
-          <NavItem href="#" icon={SettingsIcon} label="Settings" />
-        </TooltipProvider>
-      </nav>
-    </aside>
+          </TooltipProvider>
+        </div>
+      </aside>
+      <div
+        className={`flex flex-col flex-grow transition-all duration-300 ${isExpanded ? "ml-64" : "ml-16"}`}
+      >
+        {children}
+      </div>
+    </>
   );
 }
 
@@ -90,18 +108,19 @@ function NavItem({
       <TooltipTrigger asChild>
         <Link
           href={href}
-          className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:text-foreground md:h-8 md:w-8 ${
+          className={`flex items-center rounded-lg px-3 py-2 transition-colors hover:bg-accent hover:text-accent-foreground ${
             isActive
               ? "bg-accent text-accent-foreground"
               : "text-muted-foreground"
-          }
-              
-          ${isExpanded ? "w-full" : "w-9"}
-          `}
+          }`}
           prefetch={false}
         >
-          <span className={`${isExpanded ? "block" : "sr-only"}`}>{label}</span>
-          <Icon className="h-5 w-5" />
+          <Icon className="h-5 w-5 flex-shrink-0" />
+          {isExpanded ? (
+            <span className="ml-3">{label}</span>
+          ) : (
+            <span className="sr-only">{label}</span>
+          )}
         </Link>
       </TooltipTrigger>
       <TooltipContent side="right">{label}</TooltipContent>
