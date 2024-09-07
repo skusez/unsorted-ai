@@ -42,7 +42,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
       >
         <div className="flex items-center justify-between p-4">
           {isExpanded && (
-            <span className="text-lg truncate font-semibold">Your Logo</span>
+            <span className="text-lg truncate font-semibold">Logo</span>
           )}
           <Button
             variant="ghost"
