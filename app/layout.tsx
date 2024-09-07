@@ -1,13 +1,11 @@
-import { Afacad, Comfortaa } from "next/font/google";
-import { wagmiConfig } from "@/utils/web3/wagmi-config";
-import { ThemeProvider } from "next-themes";
-import "./globals.css";
-import { cookieToInitialState } from "wagmi";
 import AppKitProvider from "@/lib/providers/AppKitProvider";
+import { cn } from "@/lib/utils";
+import { getWagmiConfig } from "@/utils/web3/wagmi-config";
+import { ThemeProvider } from "next-themes";
+import { Afacad, Comfortaa } from "next/font/google";
 import { headers } from "next/headers";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import { cn } from "@/utils/cn";
+import { cookieToInitialState } from "wagmi";
+import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -31,14 +29,13 @@ const fontBody = Comfortaa({
   display: "swap",
   variable: "--font-body",
 });
-
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const initialState = cookieToInitialState(
-    wagmiConfig,
+    getWagmiConfig(),
     headers().get("cookie")
   );
   return (
@@ -47,22 +44,18 @@ export default function RootLayout({
       className={cn("antialiased", fontHeading.variable, fontBody.variable)}
       suppressHydrationWarning
     >
-      <body className="bg-background text-foreground font-sans">
-        <AppKitProvider initialState={initialState}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <div className="flex min-h-[100dvh] flex-col">
-              <Header />
-              <main className="flex-1">{children}</main>
-              <Footer />
-            </div>
-          </ThemeProvider>
-        </AppKitProvider>
-      </body>
+      <AppKitProvider initialState={initialState}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <body className="bg-background text-foreground font-sans">
+            {children}
+          </body>
+        </ThemeProvider>
+      </AppKitProvider>
     </html>
   );
 }

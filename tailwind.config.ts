@@ -1,4 +1,5 @@
 import { fontFamily } from "tailwindcss/defaultTheme";
+import tailwindMask from "@lostisworld/tailwind-mask";
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -69,5 +70,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate"), tailwindMask],
 };

@@ -31,7 +31,7 @@ export async function signInWithWeb3(address: Hex, message: string, signature: H
 
     if (existingWallet) {
       // User exists, sign them in
-      const { data: userData, error: userError } = await supabase.auth.getUser(existingWallet.id)
+      const { data: userData, error: userError } = await supabase.auth.getUser()
       if (userError) throw userError
 
       const { data, error } = await supabase.auth.signInWithPassword({

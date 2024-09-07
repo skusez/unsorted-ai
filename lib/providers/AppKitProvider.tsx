@@ -1,7 +1,7 @@
 "use client";
 
 import React, { ReactNode } from "react";
-import { wagmiConfig, metadata } from "@/utils/web3/wagmi-config";
+import { getWagmiConfig, metadata } from "@/utils/web3/wagmi-config";
 
 import { createWeb3Modal } from "@web3modal/wagmi/react";
 
@@ -22,7 +22,7 @@ if (!projectId) {
 // Create modal
 createWeb3Modal({
   metadata,
-  wagmiConfig,
+  wagmiConfig: getWagmiConfig(),
   projectId,
   enableAnalytics: true, // Optional - defaults to your Cloud configuration
 });
@@ -35,7 +35,7 @@ export default function AppKitProvider({
   initialState?: State;
 }) {
   return (
-    <WagmiProvider config={wagmiConfig} initialState={initialState}>
+    <WagmiProvider config={getWagmiConfig()} initialState={initialState}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </WagmiProvider>
   );
