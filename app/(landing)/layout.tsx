@@ -9,9 +9,9 @@ export default function RootLayout({
 }) {
   return (
     <Fragment>
-      <div className="flex min-h-[100dvh] flex-col">
+      <div className="flex min-h-[100dvh]  flex-col">
         <Header />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 mx-auto">{children}</main>
         <Footer />
       </div>
     </Fragment>
