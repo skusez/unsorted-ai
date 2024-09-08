@@ -5,6 +5,7 @@ import { AuthResponse } from '@supabase/supabase-js'
 import { Hex, verifyMessage } from 'viem'
 import { createClient } from '../supabase/server'
 import { generateSecurePassword } from './generateSecurePassword'
+import { createAdminClient } from '../supabase/admin'
 
 export async function signInWithWeb3(address: Hex, message: string, signature: Hex): Promise<AuthResponse> {
   const supabase = createClient()
@@ -20,7 +21,7 @@ export async function signInWithWeb3(address: Hex, message: string, signature: H
 
     // Check if a user with this wallet address exists
     const { data: existingWallet, error: fetchError } = await supabase
-      .from('wallet_addresses')
+      .from('wallet_addresses_public')  
       .select('id')
       .eq('address', address.toLowerCase())
       .single()
@@ -29,9 +30,12 @@ export async function signInWithWeb3(address: Hex, message: string, signature: H
       throw fetchError
     }
 
-    if (existingWallet) {
+
+
+    if (existingWallet?.id) {
       // User exists, sign them in
-      const { data: userData, error: userError } = await supabase.auth.getUser()
+      const adminClient = createAdminClient()
+      const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(existingWallet.id)
       if (userError) throw userError
 
       const { data, error } = await supabase.auth.signInWithPassword({

@@ -48,16 +48,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <AppKitProvider initialState={initialState}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <body className="bg-background text-foreground font-sans">
-            {children}
-          </body>
-        </ThemeProvider>
+        <body className="bg-background text-foreground font-sans">
+          {children}
+        </body>
       </AppKitProvider>
     </html>
   );

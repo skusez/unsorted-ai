@@ -9,8 +9,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { State, WagmiProvider } from "wagmi";
 
-// Setup queryClient
-const queryClient = new QueryClient();
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
 if (!projectId) {
@@ -34,6 +32,16 @@ export default function AppKitProvider({
   children: ReactNode;
   initialState?: State;
 }) {
+  const [queryClient] = React.useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            refetchOnWindowFocus: false, // configure as per your needs
+          },
+        },
+      })
+  );
   return (
     <WagmiProvider config={getWagmiConfig()} initialState={initialState}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

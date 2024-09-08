@@ -9,16 +9,16 @@ import useAuth from "@/utils/auth/useAuth";
 import { Fragment } from "react";
 
 export default function ConnectWalletButton() {
-  const { signIn, isLoading, isSuccess } = useAuth();
+  const { signIn, isLoading, isSuccess, session } = useAuth();
   const { address } = useAccount();
 
   const handleConnectWallet = () => {
-    if (!address || !signIn.data?.data.session) {
+    if (!address || !session.data) {
       signIn.mutate();
     }
   };
 
-  if (address && signIn.data?.data.session) {
+  if (address && session.data) {
     return <UserMenu />;
   }
 

@@ -14,10 +14,12 @@ import {
 } from "./ui/dropdown-menu";
 import { ChevronDown, Wallet, User } from "lucide-react";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
+import useAuth from "@/utils/auth/useAuth";
 
 export default function UserMenu() {
   const { address, isConnected } = useAccount();
   const { open } = useWeb3Modal();
+  const { signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   if (!isConnected || !address) return null;
@@ -48,6 +50,15 @@ export default function UserMenu() {
         <User className="mr-2 h-4 w-4" />
         Account
       </Link>
+    </Button>,
+
+    <Button
+      key="logout"
+      variant="ghost"
+      className="w-full justify-start"
+      onClick={() => signOut.mutate()}
+    >
+      Logout
     </Button>,
   ];
 

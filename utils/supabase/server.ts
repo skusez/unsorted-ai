@@ -1,12 +1,15 @@
+import { Database } from '@/database.types'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export function createClient() {
   const cookieStore = cookies()
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  if(!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('Supabase URL or Anon Key is not set')
+  }
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {

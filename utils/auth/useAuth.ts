@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 
 import { useSignMessage, useAccount } from 'wagmi'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { createClient } from '@supabase/supabase-js'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
@@ -21,7 +21,15 @@ const useAuth = () => {
     `Sign this message to login to ${projectConfig.name}: ${Date.now()}`,
     []
   )
-
+  const session = useQuery({
+    queryKey: ['auth', 'session'],
+    queryFn: async () => {
+      const { data, error } = await supabase.auth.getUser()
+      if (error) throw error
+      return data
+    },
+    enabled: !!address,
+  })
   const { signMessageAsync } = useSignMessage()
 
   const signIn = useMutation({
@@ -48,14 +56,33 @@ const useAuth = () => {
         if (error) throw error
         console.log("Successfully signed in and set Supabase session")
       }
+      session.refetch()
     },
     onError: (error) => {
       console.error("Error signing in:", error)
     },
   })
 
+  const signOut = useMutation({
+    mutationFn: async () => {
+      await supabase.auth.signOut()
+      
+    },
+    onSuccess: async () => {
+      console.log("Successfully signed out")
+      session.refetch()
+    },
+    onError: (error) => {
+      console.error("Error signing out:", error)
+    },
+  })
+
+
+
   return {
     signIn,
+    signOut,
+    session,
     isLoading: signIn.isPending,
     isSuccess: signIn.isSuccess,
     isError: signIn.isError,

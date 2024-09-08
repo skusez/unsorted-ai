@@ -3,7 +3,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "gen:migration": "supabase db diff --use-migra -f"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.17.6",
