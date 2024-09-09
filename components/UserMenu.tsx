@@ -56,7 +56,9 @@ export default function UserMenu() {
       key="logout"
       variant="ghost"
       className="w-full justify-start"
-      onClick={() => signOut.mutate()}
+      onClick={() => {
+        signOut.mutate();
+      }}
     >
       Logout
     </Button>,

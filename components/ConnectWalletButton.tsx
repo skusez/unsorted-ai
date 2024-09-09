@@ -8,8 +8,15 @@ import UserMenu from "./UserMenu";
 import useAuth from "@/utils/auth/useAuth";
 import { Fragment } from "react";
 
-export default function ConnectWalletButton() {
-  const { signIn, isLoading, isSuccess, session } = useAuth();
+export default function ConnectWalletButton({
+  onSignIn = () => {},
+  onSignOut = () => {},
+} = {}) {
+  const { signIn, isLoading, isSuccess, session } = useAuth({
+    onSignIn,
+    onSignOut,
+  });
+
   const { address } = useAccount();
 
   const handleConnectWallet = () => {

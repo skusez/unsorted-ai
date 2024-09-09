@@ -7,16 +7,20 @@ import { createClient } from '@supabase/supabase-js'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { signInWithWeb3 } from './signInWithWeb3'
 import { projectConfig } from '@/project-config'
+import { useRouter } from 'next/navigation'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const useAuth = () => {
+const useAuth = ({
+  onSignIn = () => {},
+  onSignOut = () => {},
+}= {}) => {
   const { open } = useWeb3Modal()
   const { address } = useAccount()
-  
+  const router = useRouter()
   const message = useMemo(() => 
     `Sign this message to login to ${projectConfig.name}: ${Date.now()}`,
     []
@@ -57,6 +61,7 @@ const useAuth = () => {
         console.log("Successfully signed in and set Supabase session")
       }
       session.refetch()
+      onSignIn()
     },
     onError: (error) => {
       console.error("Error signing in:", error)
@@ -66,11 +71,13 @@ const useAuth = () => {
   const signOut = useMutation({
     mutationFn: async () => {
       await supabase.auth.signOut()
-      
+
     },
     onSuccess: async () => {
       console.log("Successfully signed out")
+      router.refresh()
       session.refetch()
+      onSignOut()
     },
     onError: (error) => {
       console.error("Error signing out:", error)

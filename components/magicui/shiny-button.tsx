@@ -3,7 +3,7 @@
 import React, { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 import { motion, type AnimationProps } from "framer-motion";
-import Loder from "@/components/shared-components/Loder";
+import Loader from "./Loader";
 
 const animationProps = {
   initial: { "--x": "100%", scale: 0.8 },
@@ -26,11 +26,30 @@ const animationProps = {
   },
 } as AnimationProps;
 
-const ShinyButton = forwardRef<HTMLButtonElement, { heroClassName?:string, text?: string; type?: "button" | "submit"; className?: string; Loding?: boolean; onClick?: () => void; children?: React.ReactNode }>(
-  ({ text, type = "button", className, Loding, onClick, children,heroClassName }, ref) => {
-  
-
-  
+const ShinyButton = forwardRef<
+  HTMLButtonElement,
+  {
+    heroClassName?: string;
+    text?: string;
+    type?: "button" | "submit";
+    className?: string;
+    Loding?: boolean;
+    onClick?: () => void;
+    children?: React.ReactNode;
+  }
+>(
+  (
+    {
+      text,
+      type = "button",
+      className,
+      Loding,
+      onClick,
+      children,
+      heroClassName,
+    },
+    ref
+  ) => {
     return (
       <motion.button
         ref={ref}
@@ -44,7 +63,7 @@ const ShinyButton = forwardRef<HTMLButtonElement, { heroClassName?:string, text?
       >
         {Loding && text ? (
           <div className="mx-auto flex items-center justify-center w-full">
-            <Loder />
+            <Loader />
           </div>
         ) : (
           <span
@@ -57,11 +76,7 @@ const ShinyButton = forwardRef<HTMLButtonElement, { heroClassName?:string, text?
             {text}
           </span>
         )}
-        {children && 
-        <div className={className}>
-          {children}
-        </div>
-        }
+        {children && <div className={className}>{children}</div>}
         <span
           style={{
             mask: "linear-gradient(rgb(0,0,0), rgb(0,0,0)) content-box,linear-gradient(rgb(0,0,0), rgb(0,0,0))",

@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 // Define an array of protected routes
 const protectedRoutes = ["/protected", "/dashboard", "/profile"];
+const loginRoute = "/sign-in";
 
 export const updateSession = async (request: NextRequest) => {
     // Create an unmodified response
@@ -42,9 +43,14 @@ export const updateSession = async (request: NextRequest) => {
     // Check if the current route is protected
     const isProtectedRoute = protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route));
 
+
     // Redirect to sign-in if trying to access a protected route without authentication
     if (isProtectedRoute && !user) {
         return NextResponse.redirect(new URL("/sign-in", request.url));
+    }
+
+    if (request.nextUrl.pathname === loginRoute && user) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
     return supabaseResponse;
