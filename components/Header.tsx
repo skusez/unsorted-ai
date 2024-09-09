@@ -1,6 +1,13 @@
 import { BrainIcon } from "lucide-react";
 import Link from "next/link";
-import ConnectWalletButton from "./ConnectWalletButton";
+import UserMenu from "./UserMenu";
+
+const links = [
+  { name: "About", href: "#about" },
+  { name: "Contribute", href: "#contribute" },
+  { name: "Rewards", href: "#rewards" },
+  { name: "Dashboard", href: "/dashboard" },
+];
 
 export default function Header() {
   return (
@@ -10,16 +17,16 @@ export default function Header() {
         <span className="sr-only">Decentralized AI Research</span>
       </Link>
       <nav className="flex items-center space-x-4">
-        {["About", "Contribute", "Rewards", "Team"].map((item) => (
+        {links.map((item) => (
           <Link
-            key={item}
-            href={`#${item.toLowerCase()}`}
+            key={item.name}
+            href={item.href}
             className="text-sm font-medium hover:underline underline-offset-4"
           >
-            {item}
+            {item.name}
           </Link>
         ))}
-        <ConnectWalletButton />
+        <UserMenu />
       </nav>
     </header>
   );

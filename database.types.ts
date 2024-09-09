@@ -7,33 +7,26 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          operationName?: string
-          query?: string
-          variables?: Json
-          extensions?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
+      nonces: {
+        Row: {
+          created_at: string | null
+          nonce: string
+          used: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          nonce: string
+          used?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          nonce?: string
+          used?: boolean | null
+        }
+        Relationships: []
+      }
       wallet_addresses: {
         Row: {
           address: string
@@ -84,7 +77,20 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      cleanup_expired_nonces: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      generate_nonce: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      verify_nonce: {
+        Args: {
+          nonce_to_verify: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

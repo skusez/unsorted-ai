@@ -14,7 +14,6 @@ import {
 import Link from "next/link";
 
 import { Input } from "@/components/ui/input";
-import UserMenu from "@/components/UserMenu";
 import { Breadcrumbs } from "./Breadcrumbs";
 
 export function Header() {
@@ -40,7 +39,6 @@ export function Header() {
           className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
         />
       </div>
-      <UserMenu />
     </header>
   );
 }

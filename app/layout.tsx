@@ -1,7 +1,6 @@
 import AppKitProvider from "@/lib/providers/AppKitProvider";
 import { cn } from "@/lib/utils";
-import { getWagmiConfig } from "@/utils/web3/wagmi-config";
-import { ThemeProvider } from "next-themes";
+import { wagmiConfig } from "@/utils/web3/wagmi-config";
 import { headers } from "next/headers";
 import { cookieToInitialState } from "wagmi";
 import "./globals.css";
@@ -37,10 +36,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const initialState = cookieToInitialState(
-    getWagmiConfig(),
-    headers().get("cookie")
-  );
+  let initialState;
+
+  try {
+    initialState = cookieToInitialState(wagmiConfig, headers().get("cookie"));
+  } catch (error) {
+    console.error(error);
+  }
+
   return (
     <html
       lang="en"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useDisconnect, useEnsAvatar } from "wagmi";
 
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -12,19 +12,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { ChevronDown, Wallet, User } from "lucide-react";
+import { Wallet, User, LogOut } from "lucide-react";
+import { useSession } from "@/lib/useSession";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
-import useAuth from "@/utils/auth/useAuth";
 
-export default function UserMenu() {
-  const { address, isConnected } = useAccount();
-  const { open } = useWeb3Modal();
-  const { signOut } = useAuth();
+export default function UserMenu({ isExpanded = false } = {}) {
+  const { disconnectAsync } = useDisconnect();
   const [isOpen, setIsOpen] = useState(false);
+  const { open } = useWeb3Modal();
+  const { data: session } = useSession();
 
-  if (!isConnected || !address) return null;
-
-  const truncatedAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
+  const truncatedAddress = `1234`;
 
   const menuItems = [
     <Button
@@ -37,8 +35,7 @@ export default function UserMenu() {
       }}
     >
       <Wallet className="mr-2 h-4 w-4" />
-      <span className="mr-2">Wallet:</span>
-      <span className="font-mono">{truncatedAddress}</span>
+      <span className="">{truncatedAddress}</span>
     </Button>,
     <Button
       key="account"
@@ -56,26 +53,39 @@ export default function UserMenu() {
       key="logout"
       variant="ghost"
       className="w-full justify-start"
-      onClick={() => {
-        signOut.mutate();
-      }}
+      onClick={() => disconnectAsync()}
     >
+      <LogOut className="mr-2 h-4 w-4" />
       Logout
     </Button>,
   ];
 
+  const { data: ensAvatar } = useEnsAvatar();
+
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 w-8 rounded-full p-0">
-          <Avatar className="h-8 w-8">
+        <Button
+          disabled={!session?.user}
+          variant="ghost"
+          size={"icon"}
+          className={`rounded-full size-8 ${isExpanded ? "flex w-full h-10 items-center justify-start rounded-lg px-1.5 py-2 transition-colors hover:bg-accent hover:text-accent-foreground" : ""}`}
+        >
+          <Avatar className="object-cover  size-8">
             <AvatarImage
-              src={`https://avatars.dicebear.com/api/initials/${address}.svg`}
+              className="object-cover"
+              src={ensAvatar || undefined}
               alt={truncatedAddress}
             />
-            <AvatarFallback>{address.slice(2, 4)}</AvatarFallback>
+            <AvatarFallback className="bg-primary">
+              <User className="w-4 h-4" />
+            </AvatarFallback>
           </Avatar>
-          <ChevronDown className="ml-2 h-4 w-4" />
+          {isExpanded && (
+            <span className="ml-2 text-base text-muted-foreground">
+              {truncatedAddress}
+            </span>
+          )}
           <span className="sr-only">Open user menu</span>
         </Button>
       </DropdownMenuTrigger>

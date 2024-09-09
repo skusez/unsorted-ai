@@ -6,6 +6,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import UserMenu from "@/components/UserMenu";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -69,7 +70,10 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
             ))}
           </TooltipProvider>
         </nav>
-        <div className="mt-auto p-4">
+        <div className="mt-auto p-4 space-y-4">
+          <div className="mx-auto">
+            <UserMenu isExpanded={isExpanded} />
+          </div>
           <TooltipProvider>
             <NavItem
               href="/settings"
