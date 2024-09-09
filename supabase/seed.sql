@@ -18,11 +18,6 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
---
--- Data for Name: audit_log_entries; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
 
 --
 -- Data for Name: flow_state; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
@@ -176,3 +171,124 @@ SELECT pg_catalog.setval('"supabase_functions"."hooks_id_seq"', 1, false);
 --
 
 RESET ALL;
+
+
+-- Insert sample subscriptions (in mb)
+INSERT INTO public.subscriptions (tier, data_limit, price) VALUES
+('Basic', 25000, 9.99), 
+('Pro', 50000, 19.99),
+('Enterprise', 100000, 49.99);
+
+-- First, insert sample users into auth.users
+INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, created_at, updated_at)
+SELECT 
+    gen_random_uuid(),
+    'user' || i || '@example.com',
+    crypt('password' || i, gen_salt('bf')),  -- This creates a simple hashed password
+    now(),  -- Email confirmed
+    now(),  -- Created at
+    now()   -- Updated at
+FROM generate_series(1, 10) i
+RETURNING id, email;
+
+-- Now, insert corresponding profiles
+INSERT INTO public.profiles (id, wallet_address, email, token_balance)
+SELECT 
+    id,
+    'wallet_' || (ROW_NUMBER() OVER (ORDER BY id) * 1000)::text,
+    email,
+    random() * 1000
+FROM auth.users
+WHERE email LIKE 'user%@example.com';  -- This ensures we only select the users we just created
+--
+-- Data for Name: audit_log_entries; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+
+-- Insert sample projects
+INSERT INTO public.projects (owner_id, name, description, image_url, status, data_limit, subscription_id)
+SELECT
+    p.id,
+    'Project ' || i,
+    'Description for Project ' || i,
+    'https://example.com/project' || i || '.jpg',
+    (ARRAY['Proposed', 'Active', 'Training', 'Complete'])[floor(random() * 4 + 1)::int]::project_status,
+    s.data_limit,
+    s.id
+FROM 
+    generate_series(1, 20) i
+CROSS JOIN (
+    SELECT id FROM public.profiles ORDER BY random() LIMIT 1
+) p
+CROSS JOIN (
+    SELECT id, data_limit FROM public.subscriptions ORDER BY random() LIMIT 1
+) s;
+
+-- Insert sample storage buckets
+INSERT INTO public.storage_buckets (project_id, bucket_name)
+SELECT 
+    id,
+    'bucket-for-project-' || i
+FROM 
+    public.projects,
+    generate_series(1, 20) i
+WHERE i <= (SELECT COUNT(*) FROM public.projects);
+
+-- Insert sample user project files
+INSERT INTO public.user_project_files (user_id, project_id, file_name, file_size, file_path, contribution_score, is_revoked)
+SELECT
+    u.id,
+    p.id,
+    'file_' || i || '.dat',
+    (random() * 1000000 + 1000)::int,
+    '/project_' || p.id || '/file_' || i || '.dat',
+    random() * 100,
+    (random() > 0.95)  -- 5% chance of being revoked
+FROM
+    generate_series(1, 100) i
+CROSS JOIN (
+    SELECT id FROM public.profiles ORDER BY random() LIMIT 1
+) u
+CROSS JOIN (
+    SELECT id FROM public.projects ORDER BY random() LIMIT 1
+) p;
+
+-- Update project statistics
+UPDATE public.projects p
+SET
+    current_data_usage = subquery.total_size,
+    file_count = subquery.file_count,
+    is_full = (subquery.total_size >= p.data_limit)
+FROM (
+    SELECT
+        project_id,
+        SUM(CASE WHEN NOT is_revoked THEN file_size ELSE 0 END) as total_size,
+        COUNT(CASE WHEN NOT is_revoked THEN 1 END) as file_count
+    FROM
+        public.user_project_files
+    GROUP BY
+        project_id
+) AS subquery
+WHERE p.id = subquery.project_id;
+
+-- Update profile statistics
+UPDATE public.profiles pr
+SET
+    total_contribution_score = subquery.total_score,
+    file_count = subquery.file_count
+FROM (
+    SELECT
+        user_id,
+        SUM(CASE WHEN NOT is_revoked THEN contribution_score ELSE 0 END) as total_score,
+        COUNT(CASE WHEN NOT is_revoked THEN 1 END) as file_count
+    FROM
+        public.user_project_files
+    GROUP BY
+        user_id
+) AS subquery
+WHERE pr.id = subquery.user_id;
+
+-- Set some projects to 'Training' if they're full
+UPDATE public.projects
+SET status = 'Training'
+WHERE is_full AND status = 'Active';

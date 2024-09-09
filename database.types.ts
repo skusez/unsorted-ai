@@ -7,6 +7,31 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          operationName?: string
+          query?: string
+          variables?: Json
+          extensions?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       nonces: {
@@ -27,22 +52,40 @@ export type Database = {
         }
         Relationships: []
       }
-      wallet_addresses: {
+      profiles: {
         Row: {
-          address: string
+          created_at: string | null
+          email: string | null
+          file_count: number | null
           id: string
+          token_balance: number | null
+          total_contribution_score: number | null
+          updated_at: string | null
+          wallet_address: string | null
         }
         Insert: {
-          address: string
+          created_at?: string | null
+          email?: string | null
+          file_count?: number | null
           id: string
+          token_balance?: number | null
+          total_contribution_score?: number | null
+          updated_at?: string | null
+          wallet_address?: string | null
         }
         Update: {
-          address?: string
+          created_at?: string | null
+          email?: string | null
+          file_count?: number | null
           id?: string
+          token_balance?: number | null
+          total_contribution_score?: number | null
+          updated_at?: string | null
+          wallet_address?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "wallet_addresses_id_fkey"
+            foreignKeyName: "profiles_id_fkey"
             columns: ["id"]
             isOneToOne: true
             referencedRelation: "users"
@@ -50,25 +93,251 @@ export type Database = {
           },
         ]
       }
-    }
-    Views: {
-      wallet_addresses_public: {
+      projects: {
         Row: {
-          address: string | null
-          id: string | null
+          created_at: string | null
+          current_data_usage: number | null
+          data_limit: number
+          description: string | null
+          file_count: number | null
+          id: string
+          image_url: string | null
+          is_full: boolean | null
+          name: string
+          owner_id: string
+          status: Database["public"]["Enums"]["project_status"]
+          subscription_id: string
+          updated_at: string | null
         }
         Insert: {
-          address?: string | null
-          id?: string | null
+          created_at?: string | null
+          current_data_usage?: number | null
+          data_limit: number
+          description?: string | null
+          file_count?: number | null
+          id?: string
+          image_url?: string | null
+          is_full?: boolean | null
+          name: string
+          owner_id: string
+          status?: Database["public"]["Enums"]["project_status"]
+          subscription_id: string
+          updated_at?: string | null
         }
         Update: {
-          address?: string | null
-          id?: string | null
+          created_at?: string | null
+          current_data_usage?: number | null
+          data_limit?: number
+          description?: string | null
+          file_count?: number | null
+          id?: string
+          image_url?: string | null
+          is_full?: boolean | null
+          name?: string
+          owner_id?: string
+          status?: Database["public"]["Enums"]["project_status"]
+          subscription_id?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "wallet_addresses_id_fkey"
-            columns: ["id"]
+            foreignKeyName: "projects_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "user_statistics"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "projects_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      storage_buckets: {
+        Row: {
+          bucket_name: string
+          created_at: string | null
+          id: string
+          project_id: string
+        }
+        Insert: {
+          bucket_name: string
+          created_at?: string | null
+          id?: string
+          project_id: string
+        }
+        Update: {
+          bucket_name?: string
+          created_at?: string | null
+          id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storage_buckets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_statistics"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "storage_buckets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string | null
+          data_limit: number
+          id: string
+          price: number
+          tier: string
+        }
+        Insert: {
+          created_at?: string | null
+          data_limit: number
+          id?: string
+          price: number
+          tier: string
+        }
+        Update: {
+          created_at?: string | null
+          data_limit?: number
+          id?: string
+          price?: number
+          tier?: string
+        }
+        Relationships: []
+      }
+      user_project_files: {
+        Row: {
+          contribution_score: number | null
+          created_at: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          is_revoked: boolean | null
+          project_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          contribution_score?: number | null
+          created_at?: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          is_revoked?: boolean | null
+          project_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          contribution_score?: number | null
+          created_at?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          is_revoked?: boolean | null
+          project_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_statistics"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "user_project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_project_files_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_project_files_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_statistics"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      project_statistics: {
+        Row: {
+          avg_contribution_score: number | null
+          contributor_count: number | null
+          current_data_usage: number | null
+          data_limit: number | null
+          file_count: number | null
+          is_full: boolean | null
+          owner_id: string | null
+          project_id: string | null
+          project_name: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "user_statistics"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      user_statistics: {
+        Row: {
+          email: string | null
+          file_count: number | null
+          projects_contributed: number | null
+          projects_owned: number | null
+          token_balance: number | null
+          total_contribution_score: number | null
+          user_id: string | null
+          wallet_address: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -77,13 +346,43 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_contribution_score: {
+        Args: {
+          p_file_size: number
+          p_project_id: string
+        }
+        Returns: number
+      }
       cleanup_expired_nonces: {
         Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      distribute_project_tokens: {
+        Args: {
+          p_project_id: string
+        }
         Returns: undefined
       }
       generate_nonce: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      handle_file_upload: {
+        Args: {
+          p_user_id: string
+          p_project_id: string
+          p_file_name: string
+          p_file_size: number
+          p_file_path: string
+        }
+        Returns: string
+      }
+      revoke_file: {
+        Args: {
+          p_user_id: string
+          p_file_id: string
+        }
+        Returns: boolean
       }
       verify_nonce: {
         Args: {
@@ -93,7 +392,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      project_status: "Proposed" | "Active" | "Training" | "Complete"
     }
     CompositeTypes: {
       [_ in never]: never

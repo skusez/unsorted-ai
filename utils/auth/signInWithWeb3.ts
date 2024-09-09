@@ -37,9 +37,9 @@ export async function signInWithWeb3(
 
     // Check if a user with this wallet address exists
     const { data: existingWallet, error: fetchError } = await supabase
-      .from("wallet_addresses_public")
+      .from("profiles")
       .select("id")
-      .eq("address", address.toLowerCase())
+      .eq("wallet_address", address.toLowerCase())
       .single();
 
     if (fetchError && fetchError.code !== "PGRST116") {
@@ -78,8 +78,8 @@ export async function signInWithWeb3(
 
       // Add wallet address to the public.wallet_addresses table
       const { error: insertError } = await supabase
-        .from("wallet_addresses")
-        .insert({ id: data.user!.id, address: address.toLowerCase() });
+        .from("profiles")
+        .insert({ id: data.user!.id, wallet_address: address.toLowerCase() });
 
       if (insertError) throw insertError;
 
