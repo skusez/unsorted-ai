@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Wallet, User, LogOut } from "lucide-react";
-import { useSession } from "@/lib/useSession";
+import { useSession } from "@/lib/auth/useSession";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { cn } from "@/lib/utils";
 import { SIWEController } from "@web3modal/siwe";

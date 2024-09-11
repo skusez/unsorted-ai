@@ -1,42 +1,24 @@
-"use client";
-
-import React, { ReactNode, useEffect, useState } from "react";
-import { metadata, wagmiConfig } from "@/utils/web3/wagmi-config";
+import { createClient } from "@/utils/supabase/client";
+import { wagmiConfig } from "@/utils/web3/wagmi-config";
 import { disconnect, getAccount } from "@wagmi/core";
-import { createWeb3Modal } from "@web3modal/wagmi/react";
-
-import {
-  QueryClient,
-  QueryClientProvider,
-  useQueryClient,
-} from "@tanstack/react-query";
-
-import { State, WagmiProvider } from "wagmi";
 import {
   createSIWEConfig,
   formatMessage,
   SIWEController,
+  SIWECreateMessageArgs,
   SIWESession,
   SIWEVerifyMessageArgs,
-  type SIWECreateMessageArgs,
 } from "@web3modal/siwe";
-import { mainnet, sepolia } from "wagmi/chains";
-import { createClient } from "@/utils/supabase/client";
+import { mainnet } from "wagmi/chains";
+import { signInWithWeb3 } from "./signInWithWeb3";
 import { Hex } from "viem";
-import { signInWithWeb3 } from "@/utils/auth/signInWithWeb3";
 import { Tables } from "@/database.types";
+
 declare module "@web3modal/siwe" {
   interface SIWESession extends Tables<"user_profiles"> {
     address: string;
     chainId: number;
   }
-}
-const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
-
-if (!projectId) {
-  throw new Error(
-    "You need to provide NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID env variable"
-  );
 }
 
 const supabase = createClient();
@@ -56,11 +38,12 @@ const fetchUserProfile = async (userId: string) => {
 
   return data;
 };
-const siweConfig = createSIWEConfig({
+
+export const siweConfig = createSIWEConfig({
   getMessageParams: async () => ({
     domain: typeof window !== "undefined" ? window.location.host : "",
     uri: typeof window !== "undefined" ? window.location.origin : "",
-    chains: [mainnet.id, sepolia.id],
+    chains: [mainnet.id],
     statement: "Please sign with your account",
   }),
   createMessage: ({ address, ...args }: SIWECreateMessageArgs) =>
@@ -139,61 +122,3 @@ const siweConfig = createSIWEConfig({
     SIWEController.setSession(session);
   },
 });
-
-function SessionProvider({ children }: { children: ReactNode }) {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    console.log("auth changed");
-    const unsubscribe = SIWEController.subscribeKey("session", (session) => {
-      console.log({ session });
-      queryClient.setQueryData(["session"], session || {});
-    });
-    return () => {
-      console.log("unsubscribing");
-      unsubscribe();
-    };
-  }, [queryClient]);
-
-  return <>{children}</>;
-}
-// Create modal
-createWeb3Modal({
-  metadata,
-  wagmiConfig,
-  projectId,
-  enableAnalytics: true, // Optional - defaults to your Cloud configuration
-  siweConfig,
-  themeVariables: {
-    "--w3m-font-family": "var(--font-body)",
-    "--w3m-border-radius-master": "1px",
-    "--w3m-accent": "hsl(var(--primary))",
-    "--w3m-color-mix": "hsl(var(--accent))",
-  },
-});
-
-export default function AppKitProvider({
-  children,
-  initialState,
-}: {
-  children: ReactNode;
-  initialState?: State;
-}) {
-  const [queryClient] = React.useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            refetchOnWindowFocus: false, // configure as per your needs
-          },
-        },
-      })
-  );
-  return (
-    <WagmiProvider config={wagmiConfig} initialState={initialState}>
-      <QueryClientProvider client={queryClient}>
-        <SessionProvider>{children}</SessionProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
-  );
-}

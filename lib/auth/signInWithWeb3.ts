@@ -1,9 +1,9 @@
 "use server";
 
 import { Hex } from "viem";
-import { createClient } from "../supabase/server";
+import { createClient } from "../../utils/supabase/server";
 import { generateSecurePassword } from "./generateSecurePassword";
-import { createAdminClient } from "../supabase/admin";
+import { createAdminClient } from "../../utils/supabase/admin";
 import {
   getAddressFromMessage,
   getChainIdFromMessage,

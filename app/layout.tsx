@@ -1,4 +1,4 @@
-import AppKitProvider from "@/lib/providers/AppKitProvider";
+import Web3Provider from "@/lib/providers/Web3Provider";
 import { cn } from "@/lib/utils";
 import { wagmiConfig } from "@/utils/web3/wagmi-config";
 import { headers } from "next/headers";
@@ -50,11 +50,11 @@ export default function RootLayout({
       className={cn("antialiased", fontHeading.variable, fontBody.variable)}
       suppressHydrationWarning
     >
-      <AppKitProvider initialState={initialState}>
+      <Web3Provider initialState={initialState}>
         <body className="bg-background text-foreground font-sans">
           {children}
         </body>
-      </AppKitProvider>
+      </Web3Provider>
     </html>
   );
 }

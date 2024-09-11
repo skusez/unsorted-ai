@@ -1,21 +1,15 @@
 "use client";
 
-import { useSession } from "@/lib/useSession";
+import { useSession } from "@/lib/auth/useSession";
 import UserMenu from "./UserMenu";
 import { Button } from "./ui/button";
 
 export default function ConnectOrAccount() {
   const { data: session, isLoading } = useSession();
-  // Wrapper component to ensure consistent width and right alignment
   const Wrapper = ({ children }: { children: React.ReactNode }) => (
-    <div className="w-[120px] flex items-center justify-end">
-      {" "}
-      {/* Added ml-auto for right alignment */}
-      {children}
-    </div>
+    <div className="w-[120px] flex items-center justify-end">{children}</div>
   );
 
-  console.log({ session });
   if (isLoading)
     return (
       <Wrapper>
