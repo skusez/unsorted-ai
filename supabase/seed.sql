@@ -206,33 +206,120 @@ WHERE email LIKE 'user%@example.com';  -- This ensures we only select the users 
 
 
 -- Insert sample projects
-INSERT INTO public.projects (owner_id, name, description, image_url, status, data_limit, subscription_id)
-SELECT
-    p.id,
-    'Project ' || i,
-    'Description for Project ' || i,
-    'https://example.com/project' || i || '.jpg',
-    (ARRAY['Proposed', 'Active', 'Training', 'Complete'])[floor(random() * 4 + 1)::int]::project_status,
-    s.data_limit,
-    s.id
-FROM 
-    generate_series(1, 20) i
-CROSS JOIN (
-    SELECT id FROM public.profiles ORDER BY random() LIMIT 1
-) p
-CROSS JOIN (
-    SELECT id, data_limit FROM public.subscriptions ORDER BY random() LIMIT 1
-) s;
-
--- Insert sample storage buckets
-INSERT INTO public.storage_buckets (project_id, bucket_name)
-SELECT 
-    id,
-    'bucket-for-project-' || i
-FROM 
-    public.projects,
-    generate_series(1, 20) i
-WHERE i <= (SELECT COUNT(*) FROM public.projects);
+WITH project_data AS (
+  SELECT * FROM (VALUES
+    ('Project Alpha', 'Innovative AI initiative', ARRAY['Develop machine learning models', 'Improve natural language processing']),
+    ('Project Beta', 'Renewable energy solutions', ARRAY['Enhance solar panel efficiency', 'Develop new battery technologies']),
+    ('Project Gamma', 'Smart city infrastructure', ARRAY['Implement IoT sensors', 'Create data analytics platform']),
+    ('Project Delta', 'Sustainable agriculture', ARRAY['Develop vertical farming techniques', 'Create AI-driven crop management']),
+    ('Project Epsilon', 'Quantum computing research', ARRAY['Build quantum algorithms', 'Develop error correction methods'])
+  ) AS t(name, summary, objectives)
+),
+generated_projects AS (
+  SELECT 
+    gen_random_uuid() AS id,
+    p.id AS owner_id,  -- Use existing profile IDs
+    pd.name,
+    json_build_object(
+      'root', json_build_object(
+        'children', json_build_array(
+          json_build_object(
+            'children', json_build_array(
+              json_build_object(
+                'detail', 0,
+                'format', 0,
+                'mode', 'normal',
+                'style', '',
+                'text', pd.summary,
+                'type', 'text',
+                'version', 1
+              )
+            ),
+            'direction', 'ltr',
+            'format', '',
+            'indent', 0,
+            'type', 'paragraph',
+            'version', 1
+          ),
+          json_build_object(
+            'children', json_build_array(
+              json_build_object(
+                'detail', 0,
+                'format', 1,
+                'mode', 'normal',
+                'style', '',
+                'text', 'Project Objectives:',
+                'type', 'text',
+                'version', 1
+              )
+            ),
+            'direction', 'ltr',
+            'format', '',
+            'indent', 0,
+            'type', 'paragraph',
+            'version', 1
+          ),
+          json_build_object(
+            'children', (
+              SELECT json_agg(
+                json_build_object(
+                  'children', json_build_array(
+                    json_build_object(
+                      'detail', 0,
+                      'format', 0,
+                      'mode', 'normal',
+                      'style', '',
+                      'text', obj,
+                      'type', 'text',
+                      'version', 1
+                    )
+                  ),
+                  'direction', 'ltr',
+                  'format', '',
+                  'indent', 0,
+                  'type', 'listitem',
+                  'version', 1,
+                  'value', 1
+                )
+              )
+              FROM unnest(pd.objectives) obj
+            ),
+            'direction', 'ltr',
+            'format', '',
+            'indent', 0,
+            'type', 'list',
+            'version', 1,
+            'listType', 'bullet',
+            'start', 1,
+            'tag', 'ul'
+          )
+        ),
+        'direction', 'ltr',
+        'format', '',
+        'indent', 0,
+        'type', 'root',
+        'version', 1
+      )
+    ) AS description,
+    'https://example.com/' || lower(replace(pd.name, ' ', '-')) || '.jpg' AS image_url,
+    (ARRAY['Proposed', 'Active', 'Training', 'Complete']::project_status[])[floor(random() * 4 + 1)] AS status,
+    floor(random() * 10000 + 1000)::integer AS data_limit,
+    floor(random() * 1000)::integer AS current_data_usage,
+    floor(random() * 50)::integer AS file_count,
+    (random() > 0.8) AS is_full,
+    s.id AS subscription_id,
+    now() - (random() * interval '365 days') AS created_at,
+    now() - (random() * interval '30 days') AS updated_at
+  FROM project_data pd
+  CROSS JOIN (SELECT id FROM public.profiles ORDER BY random() LIMIT 1) p
+  CROSS JOIN (SELECT id FROM public.subscriptions ORDER BY random() LIMIT 1) s
+)
+INSERT INTO public.projects (
+  id, owner_id, name, description, image_url, status, 
+  data_limit, current_data_usage, file_count, is_full, 
+  subscription_id, created_at, updated_at
+)
+SELECT * FROM generated_projects;
 
 -- Insert sample user project files
 INSERT INTO public.user_project_files (user_id, project_id, file_name, file_size, file_path, contribution_score, is_revoked)
