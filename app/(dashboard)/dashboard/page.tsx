@@ -1,5 +1,5 @@
 "use client";
-
+// TODO use the database view to fetch projects & data
 import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { ExternalLink, Upload } from "lucide-react";

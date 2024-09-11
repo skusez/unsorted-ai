@@ -1,6 +1,6 @@
 import { BrainIcon } from "lucide-react";
 import Link from "next/link";
-import UserMenu from "./UserMenu";
+import ConnectOrAccount from "./ConnectOrAccount";
 
 const links = [
   { name: "About", href: "#about" },
@@ -26,7 +26,7 @@ export default function Header() {
             {item.name}
           </Link>
         ))}
-        <UserMenu />
+        <ConnectOrAccount />
       </nav>
     </header>
   );

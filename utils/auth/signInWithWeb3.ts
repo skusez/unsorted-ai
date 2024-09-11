@@ -1,6 +1,5 @@
 "use server";
 
-import { AuthResponse } from "@supabase/supabase-js";
 import { Hex } from "viem";
 import { createClient } from "../supabase/server";
 import { generateSecurePassword } from "./generateSecurePassword";
@@ -10,16 +9,23 @@ import {
   getChainIdFromMessage,
   verifySignature,
 } from "@web3modal/siwe";
-
+const enableDebug = true;
 export async function signInWithWeb3(
   message: string,
   signature: Hex
-): Promise<AuthResponse> {
+): Promise<{ success: boolean }> {
   const supabase = createClient();
-
+  const adminClient = createAdminClient();
+  const logDebug = (message: string, data?: any) => {
+    if (enableDebug) {
+      console.debug(`[signInWithWeb3] ${message}`, data);
+    }
+  };
   try {
     const chainId = getChainIdFromMessage(message);
     const address = getAddressFromMessage(message);
+
+    logDebug("Verifying signature");
 
     // Verify the signature and derive the address
     const isValid = await verifySignature({
@@ -32,39 +38,36 @@ export async function signInWithWeb3(
 
     // Check if the derived address matches the claimed address
     if (!isValid) {
-      throw new Error("Derived address does not match claimed address");
+      throw new Error("Invalid signature");
     }
 
     // Check if a user with this wallet address exists
-    const { data: existingWallet, error: fetchError } = await supabase
-      .from("profiles")
-      .select("id")
+    logDebug("Checking for existing wallet");
+
+    const { data: profile, error: fetchError } = await supabase
+      .from("user_profiles")
+      .select()
       .eq("wallet_address", address.toLowerCase())
       .single();
-
     if (fetchError && fetchError.code !== "PGRST116") {
       throw fetchError;
     }
 
-    if (existingWallet?.id) {
-      // User exists, sign them in
-      const adminClient = createAdminClient();
-      const { data: userData, error: userError } =
-        await adminClient.auth.admin.getUserById(existingWallet.id);
-      if (userError) throw userError;
+    if (profile?.id) {
+      logDebug("Existing profile found, signing in");
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: userData.user.email!,
-        password: userData.user.user_metadata.web3_password,
+        email: profile.email!,
+        password: profile.web3_password!,
       });
       if (error) throw error;
-      return { data, error: null };
+      return { success: true };
     } else {
-      // User doesn't exist, create a new user
+      logDebug("No existing profile, creating new user");
       const email = `${address.toLowerCase()}@web3.user`;
       const password = await generateSecurePassword();
 
-      const { data, error } = await supabase.auth.signUp({
+      const { data: auth_account, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -76,14 +79,15 @@ export async function signInWithWeb3(
 
       if (error) throw error;
 
-      // Add wallet address to the public.wallet_addresses table
-      const { error: insertError } = await supabase
-        .from("profiles")
-        .insert({ id: data.user!.id, wallet_address: address.toLowerCase() });
+      logDebug("New user created, creating profile");
+      const { error: insertError } = await adminClient.from("profiles").insert({
+        id: auth_account.user!.id,
+        wallet_address: address.toLowerCase(),
+      });
 
       if (insertError) throw insertError;
 
-      // After successful signup, immediately sign in the user
+      logDebug("Signing in user");
       const { data: signInData, error: signInError } =
         await supabase.auth.signInWithPassword({
           email,
@@ -92,10 +96,10 @@ export async function signInWithWeb3(
 
       if (signInError) throw signInError;
 
-      return { data: signInData, error: null };
+      return { success: true };
     }
   } catch (error) {
-    console.error("Error in signInWithWeb3:", error);
+    logDebug("Error in signInWithWeb3:", error);
     throw error;
   }
 }

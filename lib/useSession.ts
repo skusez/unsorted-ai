@@ -1,21 +1,15 @@
 "use client";
 
-import { createClient } from "@/utils/supabase/client";
-import { type Session } from "@supabase/supabase-js";
 import { useQuery } from "@tanstack/react-query";
-
-// Custom hook to get the session
-
-const supabase = createClient();
+import { SIWEController, SIWESession } from "@web3modal/siwe";
 
 export const useSession = () => {
-  return useQuery<Session | null>({
+  return useQuery<SIWESession | null | undefined>({
     queryKey: ["session"],
     queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      return session;
+      console.log({ status: SIWEController.state.status });
+      return (await SIWEController.getSession()) || ({} as SIWESession);
     },
+    enabled: !!SIWEController.state.status,
   });
 };
