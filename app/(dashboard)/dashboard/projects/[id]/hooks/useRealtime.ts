@@ -5,16 +5,16 @@ import { createClient } from "@/utils/supabase/client";
 import { useParams } from "next/navigation";
 import { useSession } from "@/lib/auth";
 import { getProjectFilesQueryKey, getUserScoreQueryKey } from "../queryKeys";
+import { useParamHelper } from "./useParamHelper";
 
 const supabase = createClient();
 
 export const useRealtime = () => {
-  const { id: projectId } = useParams<{ id: string }>();
-  const { data: user } = useSession();
+  const { projectId, userId } = useParamHelper();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!userId) return;
     // Create a single channel for all subscriptions
     const channel = supabase.channel("db-changes");
 
@@ -25,11 +25,11 @@ export const useRealtime = () => {
         event: "UPDATE",
         schema: "public",
         table: "user_project_files",
-        filter: `user_id=eq.${user.id} AND project_id=eq.${projectId}`,
+        filter: `user_id=eq.${userId} AND project_id=eq.${projectId}`,
       },
       (payload) => {
         queryClient.setQueryData(
-          getUserScoreQueryKey(user?.id || undefined, projectId),
+          getUserScoreQueryKey(userId || undefined, projectId),
           (oldData: any) => ({
             ...oldData,
             contribution_score: payload.new.contribution_score,
@@ -71,10 +71,11 @@ export const useRealtime = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [projectId, user?.id, queryClient]);
+  }, [projectId, userId, queryClient]);
 
+  //   return back the userId and projectId to be reused
   return {
-    userId: user?.id,
+    userId: userId,
     projectId,
   };
 };

@@ -3,7 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 
 export const getProject = async (id: string) => {
   const supabase = createClient();
-  return await supabase.from("projects").select().eq("id", id).single();
+  return (await supabase.from("projects").select().eq("id", id).single()).data;
 };
 
 // Fetch user score for a specific project
