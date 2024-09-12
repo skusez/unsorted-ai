@@ -4,11 +4,8 @@ import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   CalendarPlusIcon,
-  DatabaseZap,
-  ExternalLink,
   FileText,
   PenBox,
-  Upload,
   UploadIcon,
   User,
 } from "lucide-react";
@@ -46,6 +43,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useRouter } from "next/navigation";
 
 const CardSkeleton = () => (
   <Card className="w-full h-[300px]">
@@ -119,7 +117,7 @@ export default function ProjectCards() {
   const [pageSize, setPageSize] = useState(10);
 
   const [searchDebounced] = useDebounce(search, 500);
-
+  const router = useRouter();
   const { data, fetchNextPage, hasNextPage, isFetching, isLoading } =
     useInfiniteQuery({
       queryKey: ["projects", searchDebounced, pageSize],
@@ -189,8 +187,19 @@ export default function ProjectCards() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {allProjects.map((project) => (
             <Card
+              onClick={() =>
+                router.push(`/dashboard/projects/${project.project_id}`)
+              }
               key={project.project_id}
-              className="h-[300px] relative overflow-hidden"
+              role="button"
+              tabIndex={0}
+              aria-label={`View details for project: ${project.project_name}`}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  router.push(`/dashboard/projects/${project.project_id}`);
+                }
+              }}
+              className="h-[300px] relative cursor-pointer overflow-hidden"
             >
               <Image
                 src={
@@ -223,7 +232,7 @@ export default function ProjectCards() {
                       <Link
                         href={`/dashboard/projects/${project.project_id}`}
                         prefetch={false}
-                        className="flex items-center gap-2"
+                        className="flex z-10 items-center gap-2"
                       >
                         Contribute <UploadIcon className="size-4" />
                       </Link>
