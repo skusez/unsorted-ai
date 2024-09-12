@@ -57,6 +57,7 @@
     "prettier": "^3.3.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "recharts": "2.13.0-alpha.5",
     "sonner": "^1.5.0",
     "three": "^0.168.0",
     "use-debounce": "^10.0.3",

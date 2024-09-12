@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { ExternalLink, Upload } from "lucide-react";
+import {
+  CalendarPlusIcon,
+  DatabaseZap,
+  ExternalLink,
+  FileText,
+  PenBox,
+  Upload,
+  UploadIcon,
+  User,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -26,6 +35,17 @@ import React from "react";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { Tables } from "@/database.types";
+import { useDebounce } from "use-debounce";
+import Image from "@/components/ui/image";
+import { toGigabytes } from "@/utils/utils";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const CardSkeleton = () => (
   <Card className="w-full h-[300px]">
@@ -98,13 +118,15 @@ export default function ProjectCards() {
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(10);
 
+  const [searchDebounced] = useDebounce(search, 500);
+
   const { data, fetchNextPage, hasNextPage, isFetching, isLoading } =
     useInfiniteQuery({
-      queryKey: ["projects", search, pageSize],
+      queryKey: ["projects", searchDebounced, pageSize],
       queryFn: async ({ pageParam = undefined }) => {
         const { data, error } = await supabase
           .rpc("get_paginated_projects", {
-            p_search: search,
+            p_search: searchDebounced,
             p_page_size: pageSize,
             p_cursor: pageParam,
           })
@@ -123,6 +145,28 @@ export default function ProjectCards() {
     });
 
   const allProjects = data?.pages.flatMap((page) => page.projects) ?? [];
+
+  const TooltipWithIcon = ({
+    icon,
+    label,
+    value,
+  }: {
+    icon: React.ReactNode;
+    label: string;
+    value: React.ReactNode | null;
+  }) => {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger className="flex items-center gap-1">
+            {icon}
+            <span>{value}</span>
+          </TooltipTrigger>
+          <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -148,12 +192,16 @@ export default function ProjectCards() {
               key={project.project_id}
               className="h-[300px] relative overflow-hidden"
             >
-              <img
-                src={project.project_image || undefined}
-                alt={project.project_name || ""}
-                className="absolute inset-0 w-full mask-image-gradient-to-b from-black to-80% h-full object-cover object-center opacity-80 pointer-events-none"
+              <Image
+                src={
+                  project.project_image ||
+                  "https://source.unsplash.com/random/?abstract"
+                }
+                alt={project.project_name || "Project image"}
+                fill
+                className="object-cover object-center opacity-50 pointer-events-none"
               />
-              <div className="relative z-10 h-full flex flex-col">
+              <div className="relative z-10 h-full flex flex-col bg-gradient-to-t from-background/80 to-background/20">
                 <CardHeader>
                   <CardTitle className="flex justify-between ">
                     <div className="flex flex-col gap-2">
@@ -171,47 +219,95 @@ export default function ProjectCards() {
                         {project.status}
                       </Badge>
                     </div>
-                    <Button size={"icon"} variant={"ghost"} asChild>
+                    <Button variant={"ghost"} asChild>
                       <Link
                         href={`/dashboard/projects/${project.project_id}`}
                         prefetch={false}
+                        className="flex items-center gap-2"
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        Contribute <UploadIcon className="size-4" />
                       </Link>
                     </Button>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 flex-grow">
-                  <div className="text-sm text-muted-foreground h-20 overflow-y-auto">
+                <CardContent className="space-y-2 h-full flex flex-col justify-between">
+                  <div className="text-sm text-muted-foreground h-12 overflow-y-auto">
                     {
                       (project.description as any).root.children[0].children[0]
                         .text
                     }
                   </div>
-                  <div>
-                    <span className="text-sm">
-                      Participants: {project.contributor_count}
-                    </span>
+
+                  <Separator />
+                  <div className="flex-1 flex flex-col justify-center space-y-2">
+                    <div className="flex text-sm font-bold justify-between">
+                      <div className="inline-flex items-center text-muted-foreground space-x-2">
+                        <TooltipWithIcon
+                          icon={<User className="size-4" />}
+                          label="Contributors"
+                          value={project.contributor_count}
+                        />
+                        <TooltipWithIcon
+                          icon={<FileText className="size-4" />}
+                          label="Files"
+                          value={project.file_count}
+                        />
+                      </div>
+                      <TooltipWithIcon
+                        icon={<PenBox className="size-4" />}
+                        label="Average Contribution Score"
+                        value={`${(project.avg_contribution_score || 0).toFixed(2)}`}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-muted-foreground inline-flex items-center justify-between w-full text-xs">
+                        <span>Progress</span>
+                        <div>
+                          {toGigabytes(project.current_data_usage || 0)} GB /{" "}
+                          {toGigabytes(project.data_limit || 1)} GB
+                        </div>
+                      </Label>
+                      <Progress
+                        value={Math.min(
+                          100,
+                          ((project.current_data_usage || 0) /
+                            (project.data_limit || 1)) *
+                            100
+                        )}
+                        // Comment: Calculate progress percentage, capped at 100%
+                        className="h-2"
+                      />
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Uploaded: {project.file_count}
-                  </p>
+                  {/* <div>
+                    <div>
+                      <span className="text-sm">
+                        Participants: {project.contributor_count}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Uploaded: {project.file_count}
+                    </p>
+                  </div>
+                  Data usage progress */}
                 </CardContent>
-                <CardFooter className="flex justify-end">
-                  <Button
-                    asChild
-                    variant={"link"}
-                    size={"sm"}
-                    className="flex items-center gap-2 text-sm font-medium"
-                  >
-                    <Link
-                      href={`/dashboard/projects/${project.project_id}/upload`}
-                      prefetch={false}
-                    >
-                      <span>Contribute</span>
-                      <Upload className="h-4 w-4" />
-                    </Link>
-                  </Button>
+                <CardFooter className="text-xs text-muted-foreground justify-end">
+                  {/* human readable date */}
+                  <TooltipWithIcon
+                    icon={<CalendarPlusIcon className="size-4" />}
+                    label="Created at"
+                    value={new Date(project.created_at || "").toLocaleString(
+                      undefined,
+                      {
+                        year: "2-digit",
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      }
+                    )}
+                  />
                 </CardFooter>
               </div>
             </Card>

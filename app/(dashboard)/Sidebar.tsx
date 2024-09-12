@@ -13,8 +13,8 @@ import {
   HomeIcon,
   LineChartIcon,
   PackageIcon,
+  PlusIcon,
   SettingsIcon,
-  ShoppingCartIcon,
   UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -23,7 +23,11 @@ import React, { useState } from "react";
 
 const navItems = [
   { href: "/dashboard", icon: HomeIcon, label: "Dashboard" },
-  { href: "/dashboard/orders", icon: ShoppingCartIcon, label: "Orders" },
+  {
+    href: "/dashboard/create-project",
+    icon: PlusIcon,
+    label: "Create Project",
+  },
   { href: "/dashboard/models", icon: PackageIcon, label: "Models" },
   { href: "/dashboard/customers", icon: UsersIcon, label: "Customers" },
   { href: "/dashboard/analytics", icon: LineChartIcon, label: "Analytics" },

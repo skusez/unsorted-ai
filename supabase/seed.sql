@@ -301,7 +301,7 @@ generated_projects AS (
         'version', 1
       )
     ) AS description,
-    'https://example.com/' || lower(replace(pd.name, ' ', '-')) || '.jpg' AS image_url,
+    'http://127.0.0.1:54321/storage/v1/object/public/project-images/' || lower(replace(pd.name, ' ', '-')) || '.jpg' AS image_url,
     (ARRAY['Proposed', 'Active', 'Training', 'Complete']::project_status[])[floor(random() * 4 + 1)] AS status,
     floor(random() * 10000 + 1000)::integer AS data_limit,
     floor(random() * 1000)::integer AS current_data_usage,

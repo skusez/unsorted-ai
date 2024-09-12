@@ -10,7 +10,11 @@ import { redirect } from "next/navigation";
 export function encodedRedirect(
   type: "error" | "success",
   path: string,
-  message: string,
+  message: string
 ) {
   return redirect(`${path}?${type}=${encodeURIComponent(message)}`);
+}
+
+export function toGigabytes(megabytes: number) {
+  return Number((megabytes / 1024).toFixed(2));
 }

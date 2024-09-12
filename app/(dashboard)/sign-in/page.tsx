@@ -1,4 +1,15 @@
+"use client";
+import { useSession } from "@/lib/auth";
+import { useRouter } from "next/navigation";
+
 export default function Login() {
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  if (session) {
+    router.push("/dashboard");
+  }
+
   return (
     <div className="flex-1 flex flex-col min-w-64">
       <h1 className="text-2xl font-medium">Sign in</h1>
