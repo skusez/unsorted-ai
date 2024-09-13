@@ -8,6 +8,7 @@ import "./globals.css";
 // Learn more: https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts#root-layout-required
 import { Syne } from "next/font/google";
 import { Manrope } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -53,6 +54,7 @@ export default function RootLayout({
       <Web3Provider initialState={initialState}>
         <body className="bg-background text-foreground font-sans">
           {children}
+          <Toaster />
         </body>
       </Web3Provider>
     </html>

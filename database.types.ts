@@ -102,6 +102,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          bucket_id: string
           created_at: string | null
           current_data_usage: number | null
           data_limit: number
@@ -117,6 +118,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          bucket_id: string
           created_at?: string | null
           current_data_usage?: number | null
           data_limit: number
@@ -132,6 +134,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          bucket_id?: string
           created_at?: string | null
           current_data_usage?: number | null
           data_limit?: number
@@ -148,6 +151,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "projects_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "projects_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
@@ -163,31 +173,11 @@ export type Database = {
           },
         ]
       }
-      storage_buckets: {
-        Row: {
-          bucket_name: string
-          created_at: string | null
-          id: string
-          project_id: string
-        }
-        Insert: {
-          bucket_name: string
-          created_at?: string | null
-          id?: string
-          project_id: string
-        }
-        Update: {
-          bucket_name?: string
-          created_at?: string | null
-          id?: string
-          project_id?: string
-        }
-        Relationships: []
-      }
       subscriptions: {
         Row: {
           created_at: string | null
           data_limit: number
+          file_size_limit: number
           id: string
           price: number
           tier: string
@@ -195,6 +185,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           data_limit: number
+          file_size_limit?: number
           id?: string
           price: number
           tier: string
@@ -202,6 +193,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           data_limit?: number
+          file_size_limit?: number
           id?: string
           price?: number
           tier?: string
@@ -316,9 +308,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      generate_bucket_name: {
+        Args: {
+          project_id: string
+        }
+        Returns: string
+      }
       generate_nonce: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_max_file_size: {
+        Args: {
+          project_id: string
+        }
+        Returns: number
       }
       get_paginated_projects: {
         Args: {

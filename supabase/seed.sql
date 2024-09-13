@@ -1,11 +1,5 @@
 SET session_replication_role = replica;
 
---
--- PostgreSQL database dump
---
-
--- Dumped from database version 15.1 (Ubuntu 15.1-1.pgdg20.04+1)
--- Dumped by pg_dump version 15.7 (Ubuntu 15.7-1.pgdg20.04+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -17,133 +11,6 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
-
-
---
--- Data for Name: flow_state; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
-
---
--- Data for Name: users; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
-
---
--- Data for Name: identities; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
-
---
--- Data for Name: instances; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
-
---
--- Data for Name: sessions; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
-
---
--- Data for Name: mfa_amr_claims; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
-
---
--- Data for Name: mfa_factors; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
-
---
--- Data for Name: mfa_challenges; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
-
---
--- Data for Name: one_time_tokens; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
-
---
--- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
-
---
--- Data for Name: sso_providers; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
-
---
--- Data for Name: saml_providers; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
-
---
--- Data for Name: saml_relay_states; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
-
---
--- Data for Name: sso_domains; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
---
-
-
-
---
--- Data for Name: key; Type: TABLE DATA; Schema: pgsodium; Owner: supabase_admin
---
-
-
-
---
--- Data for Name: buckets; Type: TABLE DATA; Schema: storage; Owner: supabase_storage_admin
---
-
-
-
---
--- Data for Name: objects; Type: TABLE DATA; Schema: storage; Owner: supabase_storage_admin
---
-
-
-
---
--- Data for Name: s3_multipart_uploads; Type: TABLE DATA; Schema: storage; Owner: supabase_storage_admin
---
-
-
-
---
--- Data for Name: s3_multipart_uploads_parts; Type: TABLE DATA; Schema: storage; Owner: supabase_storage_admin
---
-
-
-
---
--- Data for Name: hooks; Type: TABLE DATA; Schema: supabase_functions; Owner: supabase_functions_admin
---
-
-
-
---
--- Data for Name: secrets; Type: TABLE DATA; Schema: vault; Owner: supabase_admin
---
-
-
 
 --
 -- Name: refresh_tokens_id_seq; Type: SEQUENCE SET; Schema: auth; Owner: supabase_auth_admin
@@ -174,10 +41,10 @@ RESET ALL;
 
 
 -- Insert sample subscriptions (in mb)
-INSERT INTO public.subscriptions (tier, data_limit, price) VALUES
-('Basic', 25000, 9.99), 
-('Pro', 50000, 19.99),
-('Enterprise', 100000, 49.99);
+INSERT INTO public.subscriptions (tier, data_limit, price, file_size_limit) VALUES
+('Basic', 25000, 9.99, 10 * 1024 * 1024), 
+('Pro', 50000, 19.99, 25 * 1024 * 1024),
+('Enterprise', 100000, 49.99, 1024 * 1024 * 1024);
 
 -- First, insert sample users into auth.users
 INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, created_at, updated_at)
@@ -309,7 +176,8 @@ generated_projects AS (
     (random() > 0.8) AS is_full,
     s.id AS subscription_id,
     now() - (random() * interval '365 days') AS created_at,
-    now() - (random() * interval '30 days') AS updated_at
+    now() - (random() * interval '30 days') AS updated_at,
+    gen_random_uuid()::text AS bucket_id  -- Add this line
   FROM project_data pd
   CROSS JOIN (SELECT id FROM public.profiles ORDER BY random() LIMIT 1) p
   CROSS JOIN (SELECT id FROM public.subscriptions ORDER BY random() LIMIT 1) s
@@ -317,7 +185,7 @@ generated_projects AS (
 INSERT INTO public.projects (
   id, owner_id, name, description, image_url, status, 
   data_limit, current_data_usage, file_count, is_full, 
-  subscription_id, created_at, updated_at
+  subscription_id, created_at, updated_at, bucket_id  -- Add bucket_id here
 )
 SELECT * FROM generated_projects;
 
