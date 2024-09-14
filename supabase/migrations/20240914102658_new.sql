@@ -754,6 +754,13 @@ grant truncate on table "public"."user_project_files" to "service_role";
 
 grant update on table "public"."user_project_files" to "service_role";
 
+create policy "Users can view subscription tiers"
+on "public"."subscriptions"
+as permissive
+for select
+to public
+using (true);
+
 create policy "Users can update own profile"
 on "public"."profiles"
 as permissive
