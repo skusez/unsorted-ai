@@ -1,18 +1,38 @@
 "use server";
+import { createAdminClient } from "@/utils/supabase/admin";
+// TODO: There is an error when uploading because the seed script / migration isnt getting the storage.buckets migration. Need to recreate the permissions, and also link the user_project_files to the storage.buckets table.
 import { createClient } from "@/utils/supabase/server";
 
 export const uploadFile = async (formData: FormData) => {
   const supabase = createClient();
+  const user = (await supabase.auth.getUser()).data.user;
 
   const file = formData.get("file") as File;
   const projectId = formData.get("projectId") as string;
   const userId = formData.get("userId") as string;
+
+  if (userId !== user?.id) {
+    throw new Error(
+      "User does not have permission to upload files for this project."
+    );
+  }
 
   if (!file || !projectId || !userId) {
     throw new Error("Missing required fields.");
   }
 
   try {
+    // Check if the project is active
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("id", projectId)
+      .single();
+
+    if (projectError || !project.id) {
+      throw new Error("Project is not active or does not exist.");
+    }
+
     // Get the max file size for this project
     const { data: maxSizeData, error: maxSizeError } = await supabase.rpc(
       "get_max_file_size",
@@ -34,67 +54,48 @@ export const uploadFile = async (formData: FormData) => {
     }
 
     // Generate a unique filename
-    const fileExtension = file.name.split(".").pop();
-    const fileName = `${crypto.randomUUID()}.${fileExtension}`;
+    const filePath = `${projectId}/${user.id}/${file.name}`;
 
-    // Get the bucket name directly from the project
-    const { data: projectData, error: projectError } = await supabase
-      .from("projects")
-      .select("bucket_id")
-      .eq("id", projectId)
-      .single();
-
-    if (projectError) {
-      console.error("Error getting project data:", projectError);
-      throw new Error("Failed to get project data.");
-    }
-
-    const bucketName = projectData.bucket_id;
+    console.log("Uploading file:", filePath);
 
     // Upload file to project-specific Supabase Storage bucket
     const { data, error } = await supabase.storage
-      .from(bucketName)
-      .upload(fileName, file, {
-        upsert: false,
-      });
+      .from("projects")
+      .upload(filePath, file);
 
     if (error) {
       console.error("Supabase storage error:", error);
       throw new Error("Failed to upload file to storage.");
     }
 
-    // Get the public URL of the uploaded file
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from(bucketName).getPublicUrl(fileName);
-
-    console.log({
-      publicUrl,
-      data,
-    });
-
-    // Add file record to the database using our custom function
-    const { data: fileRecord, error: dbError } = await supabase.rpc(
-      "handle_file_upload",
-      {
-        p_user_id: userId,
-        p_project_id: projectId,
-        p_file_name: fileName,
-        p_file_size: file.size,
-        p_file_path: publicUrl,
-      }
-    );
-
-    if (dbError) {
-      console.error("Database error:", dbError);
-      // If there's an error, we should delete the uploaded file
-      await supabase.storage.from(bucketName).remove([fileName]);
-      throw new Error(
-        dbError.message || "Failed to record file upload in the database."
+    try {
+      // Add file record to the database using our custom function
+      const { data: fileRecord, error: dbError } = await supabase.rpc(
+        "handle_file_upload",
+        {
+          p_user_id: userId,
+          p_project_id: projectId,
+          p_file_name: file.name,
+          p_file_size: file.size,
+          p_file_path: filePath,
+        }
       );
+
+      if (dbError) {
+        console.error("Database error:", dbError);
+        // If there's an error, we should delete the uploaded file
+        await supabase.storage.from("projects").remove([filePath]);
+        throw new Error(
+          dbError.message || "Failed to record file upload in the database."
+        );
+      }
+    } catch (error) {
+      console.error("Database error:", error);
+      // If there's an error, we should delete the uploaded file
+      await supabase.storage.from("projects").remove([filePath]);
     }
 
-    return { success: true, fileId: fileRecord };
+    return { success: true };
   } catch (error) {
     console.error("Upload error:", error);
     throw error;

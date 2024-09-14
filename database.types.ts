@@ -100,9 +100,58 @@ export type Database = {
           },
         ]
       }
+      project_managers: {
+        Row: {
+          created_at: string | null
+          id: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_managers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_statistics"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_managers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_managers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_managers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
-          bucket_id: string
           created_at: string | null
           current_data_usage: number | null
           data_limit: number
@@ -114,11 +163,11 @@ export type Database = {
           name: string
           owner_id: string
           status: Database["public"]["Enums"]["project_status"]
+          storage_path: string | null
           subscription_id: string
           updated_at: string | null
         }
         Insert: {
-          bucket_id: string
           created_at?: string | null
           current_data_usage?: number | null
           data_limit: number
@@ -130,11 +179,11 @@ export type Database = {
           name: string
           owner_id: string
           status?: Database["public"]["Enums"]["project_status"]
+          storage_path?: string | null
           subscription_id: string
           updated_at?: string | null
         }
         Update: {
-          bucket_id?: string
           created_at?: string | null
           current_data_usage?: number | null
           data_limit?: number
@@ -146,17 +195,11 @@ export type Database = {
           name?: string
           owner_id?: string
           status?: Database["public"]["Enums"]["project_status"]
+          storage_path?: string | null
           subscription_id?: string
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "projects_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "projects_owner_id_fkey"
             columns: ["owner_id"]
@@ -307,12 +350,6 @@ export type Database = {
           p_project_id: string
         }
         Returns: undefined
-      }
-      generate_bucket_name: {
-        Args: {
-          project_id: string
-        }
-        Returns: string
       }
       generate_nonce: {
         Args: Record<PropertyKey, never>
