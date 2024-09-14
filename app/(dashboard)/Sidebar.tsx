@@ -28,9 +28,9 @@ const navItems = [
     icon: PlusIcon,
     label: "Create Project",
   },
-  { href: "/dashboard/models", icon: PackageIcon, label: "Models" },
-  { href: "/dashboard/customers", icon: UsersIcon, label: "Customers" },
-  { href: "/dashboard/analytics", icon: LineChartIcon, label: "Analytics" },
+  // { href: "/dashboard/models", icon: PackageIcon, label: "Models" },
+  // { href: "/dashboard/customers", icon: UsersIcon, label: "Customers" },
+  // { href: "/dashboard/analytics", icon: LineChartIcon, label: "Analytics" },
 ];
 
 export function Sidebar({ children }: { children: React.ReactNode }) {
@@ -75,7 +75,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
           </TooltipProvider>
         </nav>
         <div className="mt-auto p-4 space-y-4">
-          <div className="mx-auto">
+          <div className="w-full flex justify-center">
             <UserMenu isExpanded={isExpanded} />
           </div>
           <TooltipProvider>

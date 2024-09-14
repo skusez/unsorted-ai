@@ -17,63 +17,75 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function CreateProject() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [subscriptionTier, setSubscriptionTier] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
   const { data: session } = useSession();
   const supabase = createClient();
+  const queryClient = useQueryClient();
 
-  const subscriptionTiers = useQuery({
+  const { data: subscriptionTiers, isLoading: isLoadingTiers } = useQuery({
     queryKey: ["subscriptionTiers"],
     queryFn: async () => {
       const { data, error } = await supabase.from("subscriptions").select("*");
+      if (error) throw error;
       return data;
     },
   });
-  console.log(subscriptionTiers.data);
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
 
-    if (!session?.id) {
-      toast.error("You must be logged in to create a project.");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
+  const createProjectMutation = useMutation({
+    mutationFn: async (projectData: {
+      owner_id: string;
+      name: string;
+      description: string;
+      image_url: string;
+      subscription_id: string;
+    }) => {
       const { data, error } = await supabase
         .from("projects")
         .insert({
-          owner_id: session.id,
-          name,
-          description: JSON.stringify({ description }),
-          image_url: imageUrl,
+          ...projectData,
           data_limit: 1000000, // Default data limit in bytes (1MB)
           current_data_usage: 0, // Initial data usage
           status: "Proposed",
-          subscription_id: subscriptionTier,
         })
         .select()
         .single();
-
       if (error) throw error;
-
+      return data;
+    },
+    onSuccess: (data) => {
       toast.success("Project created successfully!");
       router.push(`/dashboard/projects/${data.id}`);
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+    onError: (error) => {
       console.error("Error creating project:", error);
-      toast.error("Error creating project:");
-    } finally {
-      setIsLoading(false);
+      toast.error("Error creating project");
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!session?.id) {
+      toast.error("You must be logged in to create a project.");
+      return;
     }
+
+    createProjectMutation.mutate({
+      owner_id: session.id,
+      name,
+      description: JSON.stringify({ description }),
+      image_url: imageUrl,
+      subscription_id: subscriptionTier,
+    });
   };
 
   return (
@@ -120,7 +132,7 @@ export default function CreateProject() {
                   <SelectValue placeholder="Select a tier" />
                 </SelectTrigger>
                 <SelectContent>
-                  {subscriptionTiers.data?.map((tier) => (
+                  {subscriptionTiers?.map((tier) => (
                     <SelectItem key={tier.id} value={tier.id}>
                       {tier.tier}
                     </SelectItem>
@@ -128,8 +140,13 @@ export default function CreateProject() {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Creating..." : "Create Project"}
+            <Button
+              type="submit"
+              disabled={createProjectMutation.isPending || isLoadingTiers}
+            >
+              {createProjectMutation.isPending
+                ? "Creating..."
+                : "Create Project"}
             </Button>
           </form>
         </CardContent>
