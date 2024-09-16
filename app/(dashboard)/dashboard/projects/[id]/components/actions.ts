@@ -1,10 +1,10 @@
 "use server";
 import { createAdminClient } from "@/utils/supabase/admin";
-// TODO: There is an error when uploading because the seed script / migration isnt getting the storage.buckets migration. Need to recreate the permissions, and also link the user_project_files to the storage.buckets table.
 import { createClient } from "@/utils/supabase/server";
 
 export const uploadFile = async (formData: FormData) => {
-  const supabase = createClient();
+  // TODO: This is the admin client to bypass the auth check
+  const supabase = createAdminClient();
   const user = (await supabase.auth.getUser()).data.user;
 
   const file = formData.get("file") as File;
