@@ -4,7 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 
 export const uploadFile = async (formData: FormData) => {
   // TODO: This is the admin client to bypass the auth check
-  const supabase = createAdminClient();
+  const supabase = createClient();
   const user = (await supabase.auth.getUser()).data.user;
 
   const file = formData.get("file") as File;
