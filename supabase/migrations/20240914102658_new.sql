@@ -249,7 +249,7 @@ END;
 $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.get_paginated_projects(p_search text, p_page_size integer, p_cursor uuid DEFAULT NULL::uuid)
+CREATE OR REPLACE FUNCTION public.get_paginated_projects(p_search text, p_page_size integer, p_cursor uuid DEFAULT NULL::uuid, p_status project_status DEFAULT NULL::project_status)
  RETURNS json
  LANGUAGE plpgsql
 AS $function$
@@ -259,7 +259,7 @@ BEGIN
   WITH filtered_projects AS (
     SELECT *
     FROM public.project_statistics
-    WHERE project_name ILIKE '%' || p_search || '%'
+    WHERE project_name ILIKE '%' || p_search || '%' AND (p_status IS NULL OR status = p_status)
   ),
   paginated_projects AS (
     SELECT *

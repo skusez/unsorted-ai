@@ -4,7 +4,14 @@ import { getProject } from "../actions";
 import { getProjectQueryKey } from "../queryKeys";
 import { useParamHelper } from "../hooks/useParamHelper";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileIcon, CircleCheckIcon } from "lucide-react";
+import {
+  FileIcon,
+  CircleCheckIcon,
+  CircleXIcon,
+  CircleDotIcon,
+  GraduationCap,
+} from "lucide-react";
+import { Enums } from "@/database.types";
 
 export const ProjectHeader = () => {
   const { projectId } = useParamHelper();
@@ -24,6 +31,19 @@ export const ProjectHeader = () => {
 
   if (error) return <div>Error loading project: {error.message}</div>;
   if (!project) return <div>No project data available</div>;
+
+  const renderStatusIcon = (status: Enums<"project_status">) => {
+    switch (status) {
+      case "Active":
+        return <CircleCheckIcon className="w-4 h-4 text-green-500" />;
+      case "Proposed":
+        return <CircleDotIcon className="w-4 h-4 text-orange-500" />;
+      case "Training":
+        return <GraduationCap className="w-4 h-4 text-blue-500" />;
+      default:
+        return <></>;
+    }
+  };
 
   return (
     <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
@@ -58,8 +78,8 @@ export const ProjectHeader = () => {
                   <span>24 Files</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <CircleCheckIcon className="w-4 h-4 text-green-500" />
-                  <span>Active</span>
+                  {renderStatusIcon(project.status)}
+                  <span>{project.status}</span>
                 </div>
               </div>
             </div>

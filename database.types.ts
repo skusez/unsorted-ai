@@ -366,6 +366,7 @@ export type Database = {
           p_search: string
           p_page_size: number
           p_cursor?: string
+          p_status?: Database["public"]["Enums"]["project_status"]
         }
         Returns: Json
       }

@@ -1,23 +1,18 @@
 "use server";
-import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export const uploadFile = async (formData: FormData) => {
-  // TODO: This is the admin client to bypass the auth check
   const supabase = createClient();
   const user = (await supabase.auth.getUser()).data.user;
 
   const file = formData.get("file") as File;
   const projectId = formData.get("projectId") as string;
-  const userId = formData.get("userId") as string;
 
-  if (userId !== user?.id) {
-    throw new Error(
-      "User does not have permission to upload files for this project."
-    );
+  if (!user?.id) {
+    throw new Error("User is not logged in.");
   }
 
-  if (!file || !projectId || !userId) {
+  if (!file || !projectId) {
     throw new Error("Missing required fields.");
   }
 
@@ -25,12 +20,17 @@ export const uploadFile = async (formData: FormData) => {
     // Check if the project is active
     const { data: project, error: projectError } = await supabase
       .from("projects")
-      .select("id")
+      .select("id, status")
       .eq("id", projectId)
       .single();
 
+    if (project?.status !== "Active") {
+      console.debug("Project is not active.", project);
+      throw new Error("Project is not active.");
+    }
+
     if (projectError || !project.id) {
-      throw new Error("Project is not active or does not exist.");
+      throw new Error("Project does not exist.");
     }
 
     // Get the max file size for this project
@@ -73,7 +73,7 @@ export const uploadFile = async (formData: FormData) => {
       const { data: fileRecord, error: dbError } = await supabase.rpc(
         "handle_file_upload",
         {
-          p_user_id: userId,
+          p_user_id: user.id,
           p_project_id: projectId,
           p_file_name: file.name,
           p_file_size: file.size,

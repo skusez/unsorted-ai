@@ -31,7 +31,7 @@ import {
 import React from "react";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
-import { Tables } from "@/database.types";
+import { Enums, Tables } from "@/database.types";
 import { useDebounce } from "use-debounce";
 import Image from "@/components/ui/image";
 import { toGigabytes } from "@/utils/utils";
@@ -74,6 +74,8 @@ interface SearchAndPageSizeProps {
   setSearch: (value: string) => void;
   pageSize: number;
   setPageSize: (value: number) => void;
+  status: Enums<"project_status"> | undefined;
+  setStatus: (value: Enums<"project_status"> | undefined) => void;
 }
 
 const SearchAndPageSize: React.FC<SearchAndPageSizeProps> = ({
@@ -81,6 +83,8 @@ const SearchAndPageSize: React.FC<SearchAndPageSizeProps> = ({
   setSearch,
   pageSize,
   setPageSize,
+  status,
+  setStatus,
 }) => (
   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
     <Input
@@ -89,6 +93,26 @@ const SearchAndPageSize: React.FC<SearchAndPageSizeProps> = ({
       onChange={(e) => setSearch(e.target.value)}
       className="w-full sm:max-w-md"
     />
+    <div className="flex items-center gap-2">
+      <Label htmlFor="status">Status</Label>
+      <Select
+        value={status}
+        onValueChange={(value) => setStatus(value as Enums<"project_status">)}
+      >
+        <SelectTrigger className="w-24">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {(
+            ["Active", "Proposed", "Training"] as Enums<"project_status">[]
+          ).map((status) => (
+            <SelectItem key={status} value={status}>
+              {status}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
     <div className="flex items-center gap-2">
       <Label htmlFor="page-size">Show</Label>
       <Select
@@ -115,18 +139,22 @@ export default function ProjectCards() {
   const supabase = createClient();
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(10);
+  const [status, setStatus] = useState<Enums<"project_status"> | undefined>(
+    "Active"
+  );
 
   const [searchDebounced] = useDebounce(search, 500);
   const router = useRouter();
   const { data, fetchNextPage, hasNextPage, isFetching, isLoading } =
     useInfiniteQuery({
-      queryKey: ["projects", searchDebounced, pageSize],
+      queryKey: ["projects", searchDebounced, pageSize, status],
       queryFn: async ({ pageParam = undefined }) => {
         const { data, error } = await supabase
           .rpc("get_paginated_projects", {
             p_search: searchDebounced,
             p_page_size: pageSize,
             p_cursor: pageParam,
+            ...(status ? { p_status: status } : {}),
           })
           .returns<{
             next_cursor: string | null;
@@ -169,6 +197,8 @@ export default function ProjectCards() {
   return (
     <div className="flex flex-col gap-4">
       <SearchAndPageSize
+        status={status}
+        setStatus={setStatus}
         search={search}
         setSearch={setSearch}
         pageSize={pageSize}
