@@ -90,7 +90,7 @@ export const ProjectFiles = () => {
 
     const currentNumber = fileName.split(".")[0];
     queryClient.removeQueries({
-      queryKey: ["drawing", projectId, userId, currentNumber],
+      queryKey: ["drawing", projectId, userId, Number(currentNumber)],
     });
     queryClient.setQueryData(
       getProjectFilesQueryKey(projectId, userId!),
