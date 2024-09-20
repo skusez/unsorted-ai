@@ -37,6 +37,7 @@ export const ProjectFileUpload: React.FC<ProjectFileUploadProps> = ({
         <Input
           id="file-upload"
           type="file"
+          className="file:text-primary file:cursor-pointer"
           name="file"
           onChange={handleFileChange}
           disabled={isUploading}

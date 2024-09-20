@@ -312,12 +312,6 @@ const DrawingModal: React.FC<DrawingModalProps> = ({
           {currentNumber <= 10 && (
             <div className="mt-4 space-x-2">
               <Button onClick={handleClear}>Clear</Button>
-              <Button
-                onClick={handleSave}
-                disabled={!hasDrawings[currentNumber - 1] && !currentDrawing}
-              >
-                Save
-              </Button>
             </div>
           )}
         </div>

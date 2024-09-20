@@ -3,7 +3,14 @@ import { getProjectFiles } from "../actions";
 import { getProjectFilesQueryKey } from "../queryKeys";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useParamHelper } from "../hooks/useParamHelper";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import {
   Table,
   TableHeader,
@@ -93,23 +100,36 @@ export const ProjectFiles = () => {
 
   return (
     <div className="grid gap-6">
-      <Button onClick={() => setIsDrawingModalOpen(true)}>
-        Open Drawing Modal
-      </Button>
-      <DrawingModal
-        isOpen={isDrawingModalOpen}
-        onClose={() => setIsDrawingModalOpen(false)}
-        projectId={projectId}
-        userId={userId!}
-      />
       <Card>
+        <CardHeader>
+          <CardTitle>Drawings</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CardDescription>
+            This project requires you to submit drawings. Once submitted, you
+            will receive a score.
+          </CardDescription>
+        </CardContent>
+        <CardFooter>
+          <Button onClick={() => setIsDrawingModalOpen(true)}>
+            Open Drawing
+          </Button>
+          <DrawingModal
+            isOpen={isDrawingModalOpen}
+            onClose={() => setIsDrawingModalOpen(false)}
+            projectId={projectId}
+            userId={userId!}
+          />
+        </CardFooter>
+      </Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Upload Files</CardTitle>
         </CardHeader>
         <CardContent>
           <ProjectFileUpload projectId={projectId} userId={userId!} />
         </CardContent>
-      </Card>
+      </Card> */}
       {error ? (
         <div>Error loading files: {error.message}</div>
       ) : !files || files.length === 0 ? (
@@ -117,7 +137,7 @@ export const ProjectFiles = () => {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Uploaded Files</CardTitle>
+            <CardTitle>Your Files</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
