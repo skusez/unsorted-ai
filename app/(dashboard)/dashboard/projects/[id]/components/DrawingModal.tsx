@@ -72,7 +72,7 @@ const DrawingModal: React.FC<DrawingModalProps> = ({
   const { data: currentDrawing, isSuccess } = useQuery<File>({
     queryKey: ["drawing", projectId, userId, currentNumber],
     queryFn: () => fetchDrawing(currentNumber),
-    enabled: isOpen,
+    enabled: isOpen && currentNumber <= 10,
     retry: false,
   });
 

@@ -88,9 +88,16 @@ export const ProjectFiles = () => {
       return;
     }
 
-    queryClient.invalidateQueries({
-      queryKey: getProjectFilesQueryKey(projectId, userId!),
+    const currentNumber = fileName.split(".")[0];
+    queryClient.removeQueries({
+      queryKey: ["drawing", projectId, userId, currentNumber],
     });
+    queryClient.setQueryData(
+      getProjectFilesQueryKey(projectId, userId!),
+      (oldData: any) => {
+        return oldData.filter((file: any) => file.name !== fileName);
+      }
+    );
     toast.success(`${fileName} has been deleted successfully.`);
   };
 
