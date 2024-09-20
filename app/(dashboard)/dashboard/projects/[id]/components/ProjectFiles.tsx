@@ -15,18 +15,77 @@ import {
 import { Button } from "@/components/ui/button";
 import { FileIcon, DownloadIcon, TrashIcon } from "lucide-react";
 import { ProjectFileUpload } from "./FileUpload";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+
+import DrawingModal from "./DrawingModal";
+import { createClient } from "@/utils/supabase/client";
+import { toast } from "sonner";
 
 export const ProjectFiles = () => {
+  const supabase = createClient();
   const { projectId, userId } = useParamHelper();
+  const queryClient = useQueryClient();
+  const [isDrawingModalOpen, setIsDrawingModalOpen] = useState(false);
+
+  const getProjectFiles = async () => {
+    const { data, error } = await supabase.storage
+      .from("projects")
+      .list(`${projectId}/${userId}/`, {
+        limit: 15,
+        sortBy: { column: "name", order: "asc" },
+      });
+    if (error) {
+      throw error;
+    }
+    return data.filter((file) => !file.name.startsWith("."));
+  };
+
   const {
     data: files,
     isLoading,
     error,
   } = useQuery({
-    queryKey: getProjectFilesQueryKey(projectId),
-    queryFn: () => getProjectFiles(projectId),
-    enabled: !!projectId,
+    queryKey: getProjectFilesQueryKey(projectId, userId!),
+    queryFn: () => getProjectFiles(),
+    enabled: !!projectId && !!userId,
   });
+
+  const handleDownload = async (fileName: string) => {
+    const { data, error } = await supabase.storage
+      .from("projects")
+      .download(`${projectId}/${userId}/${fileName}`);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    const url = URL.createObjectURL(data);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDelete = async (fileName: string) => {
+    const { error } = await supabase.storage
+      .from("projects")
+      .remove([`${projectId}/${userId}/${fileName}`]);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    queryClient.invalidateQueries({
+      queryKey: getProjectFilesQueryKey(projectId, userId!),
+    });
+    toast.success(`${fileName} has been deleted successfully.`);
+  };
 
   if (isLoading) {
     return <ProjectFilesSkeleton />;
@@ -34,6 +93,15 @@ export const ProjectFiles = () => {
 
   return (
     <div className="grid gap-6">
+      <Button onClick={() => setIsDrawingModalOpen(true)}>
+        Open Drawing Modal
+      </Button>
+      <DrawingModal
+        isOpen={isDrawingModalOpen}
+        onClose={() => setIsDrawingModalOpen(false)}
+        projectId={projectId}
+        userId={userId!}
+      />
       <Card>
         <CardHeader>
           <CardTitle>Upload Files</CardTitle>
@@ -56,7 +124,6 @@ export const ProjectFiles = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>File Name</TableHead>
-                  <TableHead>Size</TableHead>
                   <TableHead>Uploaded At</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -67,19 +134,27 @@ export const ProjectFiles = () => {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <FileIcon className="w-4 h-4" />
-                        <span>{file.file_name}</span>
+                        <span>{file.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell>2.3 MB</TableCell>
+
                     <TableCell>
                       {new Date(file.created_at || "").toLocaleString()}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDownload(file.name)}
+                        >
                           <DownloadIcon className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(file.name)}
+                        >
                           <TrashIcon className="w-4 h-4" />
                         </Button>
                       </div>

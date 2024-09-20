@@ -5,8 +5,8 @@ export const getUserScoreQueryKey = (
 ) => ["userScore", userId, projectId] as string[];
 
 // Function to generate the project files query key
-export const getProjectFilesQueryKey = (projectId: string) =>
-  ["projectFiles", projectId] as string[];
+export const getProjectFilesQueryKey = (projectId: string, userId: string) =>
+  ["projectFiles", projectId, userId] as string[];
 
 // Function to generate the project query key
 export const getProjectQueryKey = (projectId: string) =>
