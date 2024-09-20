@@ -217,8 +217,8 @@ const DrawingModal: React.FC<DrawingModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Draw Numbers 1-10</DialogTitle>
+        <DialogHeader className="flex flex-col items-center">
+          <DialogTitle>Draw the item matching the description</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col items-center mt-4">
           <Carousel
@@ -306,12 +306,17 @@ const DrawingModal: React.FC<DrawingModalProps> = ({
             <CarouselPrevious onClick={handlePrevious} />
             <CarouselNext
               onClick={handleNext}
-              disabled={currentNumber === 11}
+              disabled={currentNumber === 11 || !hasDrawings[currentNumber - 1]}
             />
           </Carousel>
           {currentNumber <= 10 && (
             <div className="mt-4 space-x-2">
-              <Button onClick={handleClear}>Clear</Button>
+              <Button
+                disabled={!hasDrawings[currentNumber - 1]}
+                onClick={handleClear}
+              >
+                Clear
+              </Button>
             </div>
           )}
         </div>
