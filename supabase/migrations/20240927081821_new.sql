@@ -62,7 +62,6 @@ create table "public"."subscriptions" (
 alter table "public"."subscriptions" enable row level security;
 
 create table "public"."training_queue" (
-    "id" uuid not null default uuid_generate_v4(),
     "project_id" uuid not null,
     "status" text not null default 'pending'::text,
     "created_at" timestamp with time zone default CURRENT_TIMESTAMP,
@@ -104,7 +103,7 @@ CREATE UNIQUE INDEX projects_pkey ON public.projects USING btree (id);
 
 CREATE UNIQUE INDEX subscriptions_pkey ON public.subscriptions USING btree (id);
 
-CREATE UNIQUE INDEX training_queue_pkey ON public.training_queue USING btree (id);
+CREATE UNIQUE INDEX training_queue_pkey ON public.training_queue USING btree (project_id);
 
 CREATE UNIQUE INDEX user_project_files_pkey ON public.user_project_files USING btree (id);
 

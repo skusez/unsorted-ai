@@ -20,22 +20,13 @@ import CanvasDraw from "react-canvas-draw";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
+
 interface DrawingModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: string;
   userId: string;
-}
-
-function dataURItoBlob(dataURI: string) {
-  const byteString = atob(dataURI.split(",")[1]);
-  const mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
-  const ab = new ArrayBuffer(byteString.length);
-  const ia = new Uint8Array(ab);
-  for (let i = 0; i < byteString.length; i++) {
-    ia[i] = byteString.charCodeAt(i);
-  }
-  return new Blob([ab], { type: mimeString });
 }
 
 const DrawingModal: React.FC<DrawingModalProps> = ({
@@ -57,14 +48,14 @@ const DrawingModal: React.FC<DrawingModalProps> = ({
   const fetchDrawing = async (number: number): Promise<File> => {
     const { data: blob, error } = await supabase.storage
       .from("projects")
-      .download(`${projectId}/${userId}/${number}.png`);
+      .download(`${projectId}/${userId}/${number}.jpg`);
 
     if (error) {
       throw error;
     }
     // convert blob to file
-    const file = new File([blob!], `${number}.png`, {
-      type: "image/png",
+    const file = new File([blob!], `${number}.jpg`, {
+      type: "image/jpeg",
     });
     return file;
   };
@@ -152,13 +143,36 @@ const DrawingModal: React.FC<DrawingModalProps> = ({
     console.log("Saving drawing");
 
     // Get the canvas element directly from the CanvasDraw component
-    const canvas = (canvasRef as any).canvas.drawing;
-    const dataUrl = canvas.toDataURL("image/png");
+    const sourceCanvas = (canvasRef as any).canvas.drawing;
+
+    // Create a new canvas with white background
+    const targetCanvas = document.createElement("canvas");
+    targetCanvas.width = sourceCanvas.width;
+    targetCanvas.height = sourceCanvas.height;
+    const ctx = targetCanvas.getContext("2d");
+    if (!ctx) {
+      console.error("Unable to get 2D context");
+      return;
+    }
+
+    // Fill with white background
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+
+    // Draw the original canvas content onto the new canvas
+    ctx.drawImage(sourceCanvas, 0, 0);
 
     try {
-      const blob = dataURItoBlob(dataUrl);
-      const filename = `${currentNumber}.png`;
-      const file = new File([blob], filename, { type: "image/png" });
+      // Convert to blob
+      const blob = await new Promise<Blob>((resolve) =>
+        targetCanvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.95)
+      );
+      if (!blob) {
+        throw new Error("Failed to create blob");
+      }
+
+      const filename = `${currentNumber}.jpg`;
+      const file = new File([blob], filename, { type: "image/jpeg" });
       const { data, error } = await supabase.storage
         .from("projects")
         .upload(`${projectId}/${userId}/${filename}`, file, { upsert: true });
@@ -235,15 +249,22 @@ const DrawingModal: React.FC<DrawingModalProps> = ({
                   {index < 10 ? (
                     <div className="flex flex-col items-center">
                       <h3 className="mb-2">Number {index + 1}</h3>
-                      {currentNumber === index + 1 && currentDrawing ? (
-                        <img
-                          src={URL.createObjectURL(currentDrawing)}
-                          alt={`Number ${index + 1}`}
-                          className="w-64 h-64 border pointer-events-none bg-white border-gray-300"
-                          draggable={false}
-                        />
-                      ) : (
-                        <div className="border border-gray-300 bg-white">
+                      <div
+                        className={cn(
+                          "w-64 h-64 border border-gray-300",
+                          currentNumber === index + 1 && currentDrawing
+                            ? "bg-white"
+                            : ""
+                        )}
+                      >
+                        {currentNumber === index + 1 && currentDrawing ? (
+                          <img
+                            src={URL.createObjectURL(currentDrawing)}
+                            alt={`Number ${index + 1}`}
+                            className="w-full h-full pointer-events-none object-contain"
+                            draggable={false}
+                          />
+                        ) : (
                           <CanvasDraw
                             ref={(ref) => (canvasRefs.current[index] = ref)}
                             brushColor="black"
@@ -251,6 +272,7 @@ const DrawingModal: React.FC<DrawingModalProps> = ({
                             canvasWidth={256}
                             canvasHeight={256}
                             hideGrid
+                            backgroundColor="white"
                             onChange={() => {
                               setHasDrawings((prev) => {
                                 const newHasDrawings = [...prev];
@@ -259,28 +281,32 @@ const DrawingModal: React.FC<DrawingModalProps> = ({
                               });
                             }}
                           />
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col  items-center">
+                    <div className="flex flex-col items-center">
                       <h3 className="mb-2">All Drawings</h3>
                       <div className="relative">
                         <div className="grid w-[99%] h-[256px] overflow-y-auto grid-cols-2 gap-2">
                           {allDrawings.map((drawing, idx) =>
                             drawing ? (
-                              <Image
+                              <div
                                 key={idx}
-                                src={URL.createObjectURL(drawing)}
-                                alt={`Drawing ${idx + 1}`}
-                                width={128}
-                                height={128}
-                                className="border bg-white border-gray-300"
-                              />
+                                className="w-32 h-32 border border-gray-300 bg-white"
+                              >
+                                <Image
+                                  src={URL.createObjectURL(drawing)}
+                                  alt={`Drawing ${idx + 1}`}
+                                  width={128}
+                                  height={128}
+                                  className="object-contain"
+                                />
+                              </div>
                             ) : (
                               <div
                                 key={idx}
-                                className="w-32 h-32 border bg-gray-100 border-gray-300 flex items-center justify-center text-gray-400"
+                                className="w-32 h-32 border bg-white border-gray-300 flex items-center justify-center text-gray-400"
                               >
                                 No drawing
                               </div>
