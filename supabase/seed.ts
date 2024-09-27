@@ -31,7 +31,7 @@ async function seed() {
       const drawingBuffer = fs.readFileSync(path.join(seedFilesPath, drawing));
       // convert the to a file
       const drawingFile = new File([drawingBuffer], drawing, {
-        type: "image/png",
+        type: "image/jpeg",
       });
 
       // upload the drawing to project/user/drawing
