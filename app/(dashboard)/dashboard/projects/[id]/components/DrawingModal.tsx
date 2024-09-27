@@ -188,7 +188,7 @@ const DrawingModal: React.FC<DrawingModalProps> = ({
 
   const handleNext = async () => {
     if (
-      currentNumber < 10 &&
+      currentNumber < 11 &&
       (hasDrawings[currentNumber - 1] || currentDrawing)
     ) {
       await handleSave();

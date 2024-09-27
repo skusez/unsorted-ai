@@ -36,5 +36,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# files inside of the seed-files directory (not the directory itself)
-seed-files/*
+

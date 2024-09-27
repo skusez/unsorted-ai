@@ -61,23 +61,32 @@ create table "public"."subscriptions" (
 
 alter table "public"."subscriptions" enable row level security;
 
+create table "public"."training_queue" (
+    "id" uuid not null default uuid_generate_v4(),
+    "project_id" uuid not null,
+    "status" text not null default 'pending'::text,
+    "created_at" timestamp with time zone default CURRENT_TIMESTAMP,
+    "updated_at" timestamp with time zone default CURRENT_TIMESTAMP,
+    "error_message" text
+);
+
+
 create table "public"."user_project_files" (
     "id" uuid not null default uuid_generate_v4(),
     "user_id" uuid not null,
     "project_id" uuid not null,
-    "file_name" text not null,
-    "file_size" bigint not null,
-    "file_path" text not null,
     "contribution_score" double precision default 0,
-    "is_revoked" boolean default false,
     "created_at" timestamp with time zone default CURRENT_TIMESTAMP,
-    "updated_at" timestamp with time zone default CURRENT_TIMESTAMP
+    "updated_at" timestamp with time zone default CURRENT_TIMESTAMP,
+    "storage_objects_id" uuid
 );
 
 
 alter table "public"."user_project_files" enable row level security;
 
 CREATE INDEX idx_nonces_created_at ON public.nonces USING btree (created_at);
+
+CREATE INDEX idx_training_queue_status ON public.training_queue USING btree (status);
 
 CREATE UNIQUE INDEX nonces_pkey ON public.nonces USING btree (nonce);
 
@@ -95,6 +104,8 @@ CREATE UNIQUE INDEX projects_pkey ON public.projects USING btree (id);
 
 CREATE UNIQUE INDEX subscriptions_pkey ON public.subscriptions USING btree (id);
 
+CREATE UNIQUE INDEX training_queue_pkey ON public.training_queue USING btree (id);
+
 CREATE UNIQUE INDEX user_project_files_pkey ON public.user_project_files USING btree (id);
 
 alter table "public"."nonces" add constraint "nonces_pkey" PRIMARY KEY using index "nonces_pkey";
@@ -106,6 +117,8 @@ alter table "public"."project_managers" add constraint "project_managers_pkey" P
 alter table "public"."projects" add constraint "projects_pkey" PRIMARY KEY using index "projects_pkey";
 
 alter table "public"."subscriptions" add constraint "subscriptions_pkey" PRIMARY KEY using index "subscriptions_pkey";
+
+alter table "public"."training_queue" add constraint "training_queue_pkey" PRIMARY KEY using index "training_queue_pkey";
 
 alter table "public"."user_project_files" add constraint "user_project_files_pkey" PRIMARY KEY using index "user_project_files_pkey";
 
@@ -135,11 +148,33 @@ alter table "public"."projects" add constraint "projects_subscription_id_fkey" F
 
 alter table "public"."projects" validate constraint "projects_subscription_id_fkey";
 
+alter table "public"."training_queue" add constraint "training_queue_project_id_fkey" FOREIGN KEY (project_id) REFERENCES projects(id) not valid;
+
+alter table "public"."training_queue" validate constraint "training_queue_project_id_fkey";
+
+alter table "public"."user_project_files" add constraint "user_project_files_storage_objects_id_fkey" FOREIGN KEY (storage_objects_id) REFERENCES storage.objects(id) ON DELETE CASCADE not valid;
+
+alter table "public"."user_project_files" validate constraint "user_project_files_storage_objects_id_fkey";
+
 alter table "public"."user_project_files" add constraint "user_project_files_user_id_fkey" FOREIGN KEY (user_id) REFERENCES profiles(id) not valid;
 
 alter table "public"."user_project_files" validate constraint "user_project_files_user_id_fkey";
 
 set check_function_bodies = off;
+
+CREATE OR REPLACE FUNCTION public.add_to_training_queue()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    IF NEW.status = 'Training'::project_status AND OLD.status != 'Training'::project_status THEN
+        INSERT INTO public.training_queue (project_id)
+        VALUES (NEW.id);
+    END IF;
+    RETURN NEW;
+END;
+$function$
+;
 
 CREATE OR REPLACE FUNCTION public.calculate_contribution_score(p_file_size integer, p_project_id uuid)
  RETURNS double precision
@@ -174,6 +209,53 @@ END;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.delete_file(p_user_id uuid, p_file_id uuid)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+DECLARE
+    v_deleted BOOLEAN;
+    v_file_size BIGINT;
+    v_project_id UUID;
+    v_contribution_score FLOAT;
+    v_storage_objects_id UUID;
+BEGIN
+    -- Get file information and delete the record
+    DELETE FROM public.user_project_files
+    WHERE id = p_file_id AND user_id = p_user_id
+    RETURNING project_id, contribution_score, storage_objects_id INTO v_project_id, v_contribution_score, v_storage_objects_id;
+
+    -- If file was found and deleted
+    IF FOUND THEN
+        -- Get file size from storage.objects
+        SELECT (metadata->>'size')::bigint INTO v_file_size
+        FROM storage.objects
+        WHERE id = v_storage_objects_id;
+
+        -- Update project statistics
+        UPDATE public.projects
+        SET current_data_usage = current_data_usage - v_file_size,
+            file_count = file_count - 1,
+            is_full = FALSE
+        WHERE id = v_project_id;
+
+        -- Update user statistics
+        UPDATE public.profiles
+        SET total_contribution_score = total_contribution_score - v_contribution_score,
+            file_count = file_count - 1
+        WHERE id = p_user_id;
+
+        v_deleted := TRUE;
+    ELSE
+        v_deleted := FALSE;
+    END IF;
+
+    RETURN v_deleted;
+END;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.distribute_project_tokens(p_project_id uuid)
  RETURNS void
  LANGUAGE plpgsql
@@ -187,7 +269,7 @@ BEGIN
     SELECT owner_id, COALESCE(SUM(upf.contribution_score), 0)
     INTO v_owner_id, v_total_score
     FROM public.projects p
-    LEFT JOIN public.user_project_files upf ON p.id = upf.project_id AND upf.is_revoked = FALSE
+    LEFT JOIN public.user_project_files upf ON p.id = upf.project_id
     WHERE p.id = p_project_id
     GROUP BY p.owner_id;
 
@@ -202,7 +284,7 @@ BEGIN
         (upf.contribution_score / NULLIF(v_total_score, 0)) * (v_token_amount * 0.6)
     )
     FROM public.user_project_files upf
-    WHERE upf.project_id = p_project_id AND upf.is_revoked = FALSE AND p.id = upf.user_id;
+    WHERE upf.project_id = p_project_id AND p.id = upf.user_id;
 
     -- The remaining 20% goes to the platform (not represented in this schema)
 END;
@@ -339,6 +421,65 @@ END;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.handle_file_upload(p_user_id uuid, p_project_id uuid, p_storage_objects_id uuid)
+ RETURNS uuid
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    max_file_size bigint;
+    project_data_limit bigint;
+    project_current_usage bigint;
+    new_file_id UUID;
+    v_file_size bigint;
+    v_file_name text;
+BEGIN
+    -- Get file information from storage.objects
+    SELECT (metadata->>'size')::bigint, SPLIT_PART(name, '/', -1)
+    INTO v_file_size, v_file_name
+    FROM storage.objects
+    WHERE id = p_storage_objects_id;
+
+    -- Get the max file size for this project's subscription
+    max_file_size := public.get_max_file_size(p_project_id);
+
+    -- Check if the file size exceeds the max allowed size
+    IF v_file_size > max_file_size THEN
+        RAISE EXCEPTION 'File size exceeds the maximum allowed for this subscription tier (% bytes)', max_file_size;
+    END IF;
+
+    -- Get the project's data limit and current usage
+    SELECT data_limit, current_data_usage
+    INTO project_data_limit, project_current_usage
+    FROM public.projects
+    WHERE id = p_project_id;
+
+    -- Check if the new file would exceed the project's data limit
+    IF (project_current_usage + v_file_size) > project_data_limit THEN
+        RAISE EXCEPTION 'Uploading this file would exceed the project''s data limit';
+    END IF;
+
+    -- Insert the new file record
+    INSERT INTO public.user_project_files (user_id, project_id, storage_objects_id)
+    VALUES (p_user_id, p_project_id, p_storage_objects_id)
+    RETURNING id INTO new_file_id;
+
+    -- Update project's current_data_usage and file_count
+    UPDATE public.projects
+    SET current_data_usage = current_data_usage + v_file_size,
+        file_count = file_count + 1,
+        is_full = CASE WHEN (current_data_usage + v_file_size) >= data_limit THEN true ELSE false END
+    WHERE id = p_project_id;
+
+    -- Update user's file_count in profiles
+    UPDATE public.profiles
+    SET file_count = file_count + 1
+    WHERE id = p_user_id;
+
+    RETURN new_file_id;
+END;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.handle_new_user()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -352,6 +493,30 @@ END;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.insert_user_project_files()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    -- Check if the conditions are met
+    IF NEW.bucket_id = 'projects' AND 
+       NEW.user_metadata->>'user_id' IS NOT NULL AND 
+       NEW.user_metadata->>'project_id' IS NOT NULL THEN
+        
+        -- Insert a new row into public.user_project_files
+        INSERT INTO public.user_project_files (user_id, project_id, storage_objects_id)
+        VALUES (
+            (NEW.user_metadata->>'user_id')::uuid,
+            (NEW.user_metadata->>'project_id')::uuid,
+            NEW.id
+        );
+    END IF;
+    
+    RETURN NEW;
+END;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.on_file_delete()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -359,16 +524,20 @@ CREATE OR REPLACE FUNCTION public.on_file_delete()
 AS $function$
 DECLARE
   v_project_id UUID;
-  v_file_size INTEGER;
+  v_file_size BIGINT;
+  v_user_id UUID;
 BEGIN
-  -- Get the project_id and file_size based on the deleted file
-  SELECT project_id, file_size INTO v_project_id, v_file_size
+  -- Get the project_id, file_size, and user_id based on the deleted file
+  SELECT project_id, user_id INTO v_project_id, v_user_id
   FROM public.user_project_files
-  WHERE file_path = OLD.path;
+  WHERE storage_objects_id = OLD.id;
 
-  -- Delete from user_project_files
+  -- Get file size from storage.objects
+  SELECT (OLD.metadata->>'size')::bigint INTO v_file_size;
+
+  -- Delete from user_project_files (this should cascade due to the foreign key)
   DELETE FROM public.user_project_files
-  WHERE file_path = OLD.path;
+  WHERE storage_objects_id = OLD.id;
 
   -- Update project's current_data_usage and file_count
   UPDATE public.projects
@@ -384,7 +553,7 @@ BEGIN
   -- Update user's file_count
   UPDATE public.profiles
   SET file_count = file_count - 1
-  WHERE id = auth.uid();
+  WHERE id = v_user_id;
 
   RETURN OLD;
 END;
@@ -405,9 +574,22 @@ create or replace view "public"."project_statistics" as  SELECT p.id AS project_
     count(DISTINCT upf.user_id) AS contributor_count,
     avg(upf.contribution_score) AS avg_contribution_score
    FROM (projects p
-     LEFT JOIN user_project_files upf ON (((p.id = upf.project_id) AND (upf.is_revoked = false))))
+     LEFT JOIN user_project_files upf ON ((p.id = upf.project_id)))
   GROUP BY p.id, p.name, p.owner_id, p.status, p.data_limit, p.current_data_usage, p.file_count, p.is_full, p.image_url;
 
+
+CREATE OR REPLACE FUNCTION public.remove_from_training_queue()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    IF NEW.status = 'Complete'::project_status AND OLD.status = 'Training'::project_status THEN
+        DELETE FROM public.training_queue WHERE project_id = NEW.id;
+    END IF;
+    RETURN NEW;
+END;
+$function$
+;
 
 CREATE OR REPLACE FUNCTION public.revoke_file(p_user_id uuid, p_file_id uuid)
  RETURNS boolean
@@ -712,6 +894,48 @@ grant truncate on table "public"."subscriptions" to "service_role";
 
 grant update on table "public"."subscriptions" to "service_role";
 
+grant delete on table "public"."training_queue" to "anon";
+
+grant insert on table "public"."training_queue" to "anon";
+
+grant references on table "public"."training_queue" to "anon";
+
+grant select on table "public"."training_queue" to "anon";
+
+grant trigger on table "public"."training_queue" to "anon";
+
+grant truncate on table "public"."training_queue" to "anon";
+
+grant update on table "public"."training_queue" to "anon";
+
+grant delete on table "public"."training_queue" to "authenticated";
+
+grant insert on table "public"."training_queue" to "authenticated";
+
+grant references on table "public"."training_queue" to "authenticated";
+
+grant select on table "public"."training_queue" to "authenticated";
+
+grant trigger on table "public"."training_queue" to "authenticated";
+
+grant truncate on table "public"."training_queue" to "authenticated";
+
+grant update on table "public"."training_queue" to "authenticated";
+
+grant delete on table "public"."training_queue" to "service_role";
+
+grant insert on table "public"."training_queue" to "service_role";
+
+grant references on table "public"."training_queue" to "service_role";
+
+grant select on table "public"."training_queue" to "service_role";
+
+grant trigger on table "public"."training_queue" to "service_role";
+
+grant truncate on table "public"."training_queue" to "service_role";
+
+grant update on table "public"."training_queue" to "service_role";
+
 grant delete on table "public"."user_project_files" to "anon";
 
 grant insert on table "public"."user_project_files" to "anon";
@@ -753,13 +977,6 @@ grant trigger on table "public"."user_project_files" to "service_role";
 grant truncate on table "public"."user_project_files" to "service_role";
 
 grant update on table "public"."user_project_files" to "service_role";
-
-create policy "Users can view subscription tiers"
-on "public"."subscriptions"
-as permissive
-for select
-to public
-using (true);
 
 create policy "Users can update own profile"
 on "public"."profiles"
@@ -803,6 +1020,14 @@ to public
 using (true);
 
 
+create policy "Users can view subscription tiers"
+on "public"."subscriptions"
+as permissive
+for select
+to public
+using (true);
+
+
 create policy "Users can delete own files if project is active"
 on "public"."user_project_files"
 as permissive
@@ -839,7 +1064,11 @@ using ((auth.uid() = user_id));
 
 CREATE TRIGGER update_profiles_timestamp BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
+CREATE TRIGGER add_to_training_queue_trigger AFTER UPDATE OF status ON public.projects FOR EACH ROW EXECUTE FUNCTION add_to_training_queue();
+
 CREATE TRIGGER project_status_update BEFORE UPDATE ON public.projects FOR EACH ROW WHEN ((new.is_full IS DISTINCT FROM old.is_full)) EXECUTE FUNCTION update_project_status();
+
+CREATE TRIGGER remove_from_training_queue_trigger AFTER UPDATE OF status ON public.projects FOR EACH ROW EXECUTE FUNCTION remove_from_training_queue();
 
 CREATE TRIGGER update_projects_timestamp BEFORE UPDATE ON public.projects FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
@@ -858,23 +1087,17 @@ using (((bucket_id = 'projects'::text) AND ((EXISTS ( SELECT 1
   WHERE (((project_managers.project_id)::text = (storage.foldername(objects.name))[1]) AND (project_managers.user_id = auth.uid())))))));
 
 
-create policy "Allow users to delete their own files"
+create policy "Give users access to own folder in active project DELETE"
 on "storage"."objects"
 as permissive
 for delete
 to authenticated
-using (((bucket_id = 'projects'::text) AND ((auth.uid())::text = (storage.foldername(name))[2])));
+using (((bucket_id = 'projects'::text) AND ((auth.uid())::text = (storage.foldername(name))[2]) AND (EXISTS ( SELECT 1
+   FROM projects
+  WHERE (((projects.id)::text = (storage.foldername(objects.name))[1]) AND (projects.status = 'Active'::project_status))))));
 
 
-create policy "Allow users to update their own files"
-on "storage"."objects"
-as permissive
-for update
-to authenticated
-using (((bucket_id = 'projects'::text) AND ((auth.uid())::text = (storage.foldername(name))[2])));
-
-
-create policy "Allow users to upload to their own folder if project is active"
+create policy "Give users access to own folder in active project INSERT"
 on "storage"."objects"
 as permissive
 for insert
@@ -883,5 +1106,27 @@ with check (((bucket_id = 'projects'::text) AND ((auth.uid())::text = (storage.f
    FROM projects
   WHERE (((projects.id)::text = (storage.foldername(objects.name))[1]) AND (projects.status = 'Active'::project_status))))));
 
+
+create policy "Give users access to own folder in active project SELECT"
+on "storage"."objects"
+as permissive
+for select
+to authenticated
+using (((bucket_id = 'projects'::text) AND ((auth.uid())::text = (storage.foldername(name))[2]) AND (EXISTS ( SELECT 1
+   FROM projects
+  WHERE (((projects.id)::text = (storage.foldername(objects.name))[1]) AND (projects.status = 'Active'::project_status))))));
+
+
+create policy "Give users access to own folder in active project UPDATE"
+on "storage"."objects"
+as permissive
+for update
+to authenticated
+using (((bucket_id = 'projects'::text) AND ((auth.uid())::text = (storage.foldername(name))[2]) AND (EXISTS ( SELECT 1
+   FROM projects
+  WHERE (((projects.id)::text = (storage.foldername(objects.name))[1]) AND (projects.status = 'Active'::project_status))))));
+
+
+CREATE TRIGGER trigger_insert_user_project_files AFTER INSERT ON storage.objects FOR EACH ROW EXECUTE FUNCTION insert_user_project_files();
 
 

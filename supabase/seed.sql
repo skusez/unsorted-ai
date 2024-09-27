@@ -23,7 +23,7 @@ INSERT INTO public.profiles (id, wallet_address, email, token_balance, total_con
 
 -- Seed data for projects
 INSERT INTO public.projects (owner_id, name, description, image_url, status, data_limit, current_data_usage, file_count, is_full, subscription_id, storage_path) VALUES
-('d7bed82b-3f97-4646-8800-1d1739e8c8f5', 'Project Alpha', '{"description": "This is Project Alpha"}', 'http://localhost:3000/alpha.jpg', 'Active', 1073741824, 536870912, 10, false, (SELECT id FROM public.subscriptions WHERE tier = 'Basic' LIMIT 1), 'projects/alpha/');
+('d7bed82b-3f97-4646-8800-1d1739e8c8f5', 'Project Alpha', '{"description": "This is Project Alpha"}', 'http://localhost:3000/alpha.jpg', 'Active', 1073741824, 536870912, 10, false, (SELECT id FROM public.subscriptions WHERE tier = 'Basic' LIMIT 1), 'projects/d7bed82b-3f97-4646-8800-1d1739e8c8f5/');
 -- ('b5f9e3a0-5c4d-4c4d-9e6f-e14e4e2e5a6b', 'Project Beta', '{"description": "This is Project Beta"}', 'http://localhost:3000/beta.jpg', 'Proposed', 5368709120, 1073741824, 20, false, (SELECT id FROM public.subscriptions WHERE tier = 'Pro' LIMIT 1), 'projects/beta/'),
 -- ('c3d2a1b0-9e8d-7c6b-5a4f-3e2d1c0b9a8f', 'Project Gamma', '{"description": "This is Project Gamma"}', 'http://localhost:3000/gamma.jpg', 'Training', 10737418240, 2147483648, 30, false, (SELECT id FROM public.subscriptions WHERE tier = 'Enterprise' LIMIT 1), 'projects/gamma/');
 
@@ -33,14 +33,11 @@ INSERT INTO public.project_managers (project_id, user_id) VALUES
 -- ((SELECT id FROM public.projects WHERE name = 'Project Beta'), 'c3d2a1b0-9e8d-7c6b-5a4f-3e2d1c0b9a8f'),
 -- ((SELECT id FROM public.projects WHERE name = 'Project Gamma'), 'd7bed82b-3f97-4646-8800-1d1739e8c8f5');
 
--- Seed data for user_project_files
-INSERT INTO public.user_project_files (user_id, project_id, file_name, file_size, file_path, contribution_score) VALUES
-('d7bed82b-3f97-4646-8800-1d1739e8c8f5', (SELECT id FROM public.projects WHERE name = 'Project Alpha'), 'file1.txt', 1024, 'projects/alpha/d7bed82b-3f97-4646-8800-1d1739e8c8f5/file1.txt', 10);
--- ('b5f9e3a0-5c4d-4c4d-9e6f-e14e4e2e5a6b', (SELECT id FROM public.projects WHERE name = 'Project Beta'), 'file2.txt', 2048, 'projects/beta/b5f9e3a0-5c4d-4c4d-9e6f-e14e4e2e5a6b/file2.txt', 15),
--- ('c3d2a1b0-9e8d-7c6b-5a4f-3e2d1c0b9a8f', (SELECT id FROM public.projects WHERE name = 'Project Gamma'), 'file3.txt', 4096, 'projects/gamma/c3d2a1b0-9e8d-7c6b-5a4f-3e2d1c0b9a8f/file3.txt', 20);
 
 -- Seed data for nonces (optional, as they are typically generated on-demand)
 INSERT INTO public.nonces (nonce) VALUES
 ('abcdef1234567890');
 -- ('1234567890abcdef'),
 -- ('0987654321fedcba');
+
+
