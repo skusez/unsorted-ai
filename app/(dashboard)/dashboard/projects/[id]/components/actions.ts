@@ -16,6 +16,9 @@ export const uploadFile = async (formData: FormData) => {
     throw new Error("Missing required fields.");
   }
 
+  // Generate a unique filename
+  const filePath = `${projectId}/${user.id}/${file.name}`;
+
   try {
     // Check if the project is active
     const { data: project, error: projectError } = await supabase
@@ -53,9 +56,6 @@ export const uploadFile = async (formData: FormData) => {
       );
     }
 
-    // Generate a unique filename
-    const filePath = `${projectId}/${user.id}/${file.name}`;
-
     console.log("Uploading file:", filePath);
 
     // Upload file to project-specific Supabase Storage bucket
@@ -68,36 +68,11 @@ export const uploadFile = async (formData: FormData) => {
       throw new Error("Failed to upload file to storage.");
     }
 
-    try {
-      // Add file record to the database using our custom function
-      const { data: fileRecord, error: dbError } = await supabase.rpc(
-        "handle_file_upload",
-        {
-          p_user_id: user.id,
-          p_project_id: projectId,
-          p_file_name: file.name,
-          p_file_size: file.size,
-          p_file_path: filePath,
-        }
-      );
-
-      if (dbError) {
-        console.error("Database error:", dbError);
-        // If there's an error, we should delete the uploaded file
-        await supabase.storage.from("projects").remove([filePath]);
-        throw new Error(
-          dbError.message || "Failed to record file upload in the database."
-        );
-      }
-    } catch (error) {
-      console.error("Database error:", error);
-      // If there's an error, we should delete the uploaded file
-      await supabase.storage.from("projects").remove([filePath]);
-    }
-
     return { success: true };
   } catch (error) {
     console.error("Upload error:", error);
+    // delete the file from storage
+    await supabase.storage.from("projects").remove([filePath]);
     throw error;
   }
 };

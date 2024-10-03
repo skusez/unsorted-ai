@@ -15,6 +15,6 @@ export function encodedRedirect(
   return redirect(`${path}?${type}=${encodeURIComponent(message)}`);
 }
 
-export function toGigabytes(megabytes: number) {
-  return Number((megabytes / 1024).toFixed(2));
+export function toGigabytes(bytes: number) {
+  return Number((bytes / 1024 / 1024 / 1024).toFixed(2));
 }

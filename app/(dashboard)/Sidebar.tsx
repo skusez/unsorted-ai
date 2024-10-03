@@ -41,9 +41,11 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
   return (
     <>
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r bg-background transition-all duration-300 ease-in-out ${
-          isExpanded ? "w-64" : "w-16 items-center"
+        className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r bg-background transition-all delay-100 duration-300 ease-in-out ${
+          isExpanded ? "w-64" : "w-16 items-center "
         }`}
+        onMouseEnter={() => setIsExpanded(true)}
+        onMouseLeave={() => setIsExpanded(false)}
       >
         <div className="flex items-center justify-between p-4">
           {isExpanded && (

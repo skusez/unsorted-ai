@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { FileIcon, DownloadIcon, TrashIcon } from "lucide-react";
-import { ProjectFileUpload } from "./FileUpload";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -53,7 +52,7 @@ export const ProjectFiles = () => {
     isLoading,
     error,
   } = useQuery({
-    queryKey: getProjectFilesQueryKey(projectId, userId!),
+    queryKey: getProjectFilesQueryKey(projectId),
     queryFn: () => getProjectFiles(),
     enabled: !!projectId && !!userId,
   });
@@ -93,7 +92,7 @@ export const ProjectFiles = () => {
       queryKey: ["drawing", projectId, userId, Number(currentNumber)],
     });
     queryClient.setQueryData(
-      getProjectFilesQueryKey(projectId, userId!),
+      getProjectFilesQueryKey(projectId),
       (oldData: any) => {
         return oldData.filter((file: any) => file.name !== fileName);
       }

@@ -1,6 +1,6 @@
 "use server";
 import { getProject, getProjectFiles, getUserScore } from "./actions";
-import { SIWEController } from "@web3modal/siwe";
+
 import {
   getProjectFilesQueryKey,
   getProjectQueryKey,
@@ -14,22 +14,23 @@ import {
 import { ProjectPageClient } from "./page.client";
 
 async function Projects({ params }: { params: { id: string } }) {
-  const session = await SIWEController.getSession();
-  const userId = session?.id as string;
   const queryClient = new QueryClient();
-
+  console.log("prefetching");
   await Promise.all([
     queryClient.prefetchQuery({
-      queryKey: getUserScoreQueryKey(userId, params.id),
-      queryFn: () => getUserScore(userId, params.id),
+      queryKey: getUserScoreQueryKey(params.id),
+      queryFn: () => getUserScore(params.id),
+      retry: false,
     }),
     queryClient.prefetchQuery({
       queryKey: getProjectFilesQueryKey(params.id),
       queryFn: () => getProjectFiles(params.id),
+      retry: false,
     }),
     queryClient.prefetchQuery({
       queryKey: getProjectQueryKey(params.id),
       queryFn: () => getProject(params.id),
+      retry: false,
     }),
   ]);
   const state = dehydrate(queryClient);

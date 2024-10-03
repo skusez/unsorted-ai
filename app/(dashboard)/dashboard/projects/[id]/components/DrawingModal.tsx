@@ -18,9 +18,9 @@ import {
 } from "@/components/ui/carousel";
 import CanvasDraw from "react-canvas-draw";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSession } from "@/lib/auth";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { getProjectFilesQueryKey } from "../queryKeys";
 
 interface DrawingModalProps {
   isOpen: boolean;
@@ -194,7 +194,15 @@ const DrawingModal: React.FC<DrawingModalProps> = ({
         return newHasDrawings;
       });
 
-      console.log("Drawing saved successfully");
+      queryClient.setQueryData<File[]>(
+        getProjectFilesQueryKey(projectId),
+        (files) => {
+          if (!files) return files;
+          const newFiles = [...files];
+          newFiles[currentNumber - 1] = file;
+          return newFiles;
+        }
+      );
     } catch (error) {
       console.error("Error in handleSave:", error);
     }

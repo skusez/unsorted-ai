@@ -271,7 +271,7 @@ export default function ProjectCards() {
                 </CardHeader>
                 <CardContent className="space-y-2 h-full flex flex-col justify-between">
                   <div className="text-sm text-muted-foreground h-12 overflow-y-auto">
-                    {JSON.stringify(project.description)}
+                    {project.description.description}
                   </div>
 
                   <Separator />

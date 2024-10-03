@@ -82,7 +82,7 @@ export default function UserMenu({
           className={cn(
             `rounded-full size-8 ${
               isExpanded
-                ? "flex w-full h-10 items-center justify-start rounded-lg px-1.5 py-2 transition-colors hover:bg-accent hover:text-accent-foreground"
+                ? "flex w-full h-10 items-center justify-start rounded-lg duration-200 delay-100 px-1.5 py-2 transition-colors hover:bg-accent hover:text-accent-foreground"
                 : ""
             }`,
             className

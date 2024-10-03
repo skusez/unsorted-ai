@@ -33,30 +33,26 @@ async function seed() {
       const drawingFile = new File([drawingBuffer], drawing, {
         type: "image/jpeg",
       });
-
+      console.log(`${project.id}/${userData.id}/${drawing}`);
       // upload the drawing to project/user/drawing
       const { data, error } = await supabase.storage
         .from("projects")
         .upload(`${project.id}/${userData.id}/${drawing}`, drawingFile, {
           upsert: true,
-          metadata: {
-            user_id: userData.id,
-            project_id: project.id,
-          },
+          // metadata: {
+          //   user_id: userData.id,
+          //   project_id: project.id,
+          // },
         });
       if (error || !data.fullPath) throw error;
       drawingPaths.push(data.fullPath);
     }
-
-    // set the projects status to training
-    const { data: projectData, error: projectError } = await supabase
-      .from("projects")
-      .update({ status: "Training" })
-      .eq("id", project.id);
-    if (projectError) throw projectError;
   }
 
   console.log("Seeded");
 }
 
-seed();
+seed().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

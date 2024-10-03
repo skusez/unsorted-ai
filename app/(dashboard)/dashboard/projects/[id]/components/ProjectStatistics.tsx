@@ -8,11 +8,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toGigabytes } from "@/utils/utils";
 
 export const ProjectStatistics = () => {
-  const { projectId, userId } = useParamHelper();
+  const { projectId } = useParamHelper();
   const { data: project, isLoading } = useQuery({
     queryKey: getProjectQueryKey(projectId),
     queryFn: () => getProject(projectId),
     enabled: !!projectId,
+    refetchOnMount: false,
   });
 
   const {
@@ -20,9 +21,11 @@ export const ProjectStatistics = () => {
     isLoading: isUserScoreLoading,
     error,
   } = useQuery({
-    queryKey: getUserScoreQueryKey(userId!, projectId),
-    queryFn: () => getUserScore(userId!, projectId),
-    enabled: !!userId && !!projectId,
+    queryKey: getUserScoreQueryKey(projectId),
+    queryFn: () => getUserScore(projectId),
+    enabled: !!projectId,
+    refetchOnMount: false,
+    retry: false,
   });
 
   if (isLoading) {
@@ -43,7 +46,9 @@ export const ProjectStatistics = () => {
             <CardTitle>Your Score</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold">{score || "N/A"}</div>
+            <div className="text-4xl font-bold">
+              {score ? `${(100 - (score || 0)).toFixed(2)}%` : "N/A"}
+            </div>
           </CardContent>
         </Card>
       )}

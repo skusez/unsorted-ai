@@ -44,8 +44,7 @@ create table "public"."projects" (
     "is_full" boolean default false,
     "subscription_id" uuid not null,
     "created_at" timestamp with time zone default CURRENT_TIMESTAMP,
-    "updated_at" timestamp with time zone default CURRENT_TIMESTAMP,
-    "storage_path" text
+    "updated_at" timestamp with time zone default CURRENT_TIMESTAMP
 );
 
 
@@ -369,116 +368,6 @@ END;
 $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.handle_file_upload(p_user_id uuid, p_project_id uuid, p_file_name text, p_file_size bigint, p_file_path text)
- RETURNS uuid
- LANGUAGE plpgsql
-AS $function$
-DECLARE
-    max_file_size bigint;
-    project_data_limit bigint;
-    project_current_usage bigint;
-    new_file_id UUID;
-BEGIN
-    -- Get the max file size for this project's subscription
-    max_file_size := public.get_max_file_size(p_project_id);
-
-    -- Check if the file size exceeds the max allowed size
-    IF p_file_size > max_file_size THEN
-        RAISE EXCEPTION 'File size exceeds the maximum allowed for this subscription tier (% bytes)', max_file_size;
-    END IF;
-
-    -- Get the project's data limit and current usage
-    SELECT data_limit, current_data_usage
-    INTO project_data_limit, project_current_usage
-    FROM public.projects
-    WHERE id = p_project_id;
-
-    -- Check if the new file would exceed the project's data limit
-    IF (project_current_usage + p_file_size) > project_data_limit THEN
-        RAISE EXCEPTION 'Uploading this file would exceed the project''s data limit';
-    END IF;
-
-    -- Insert the new file record
-    INSERT INTO public.user_project_files (user_id, project_id, file_name, file_size, file_path)
-    VALUES (p_user_id, p_project_id, p_file_name, p_file_size, p_file_path)
-    RETURNING id INTO new_file_id;
-
-    -- Update project's current_data_usage and file_count
-    UPDATE public.projects
-    SET current_data_usage = current_data_usage + p_file_size,
-        file_count = file_count + 1,
-        is_full = CASE WHEN (current_data_usage + p_file_size) >= data_limit THEN true ELSE false END
-    WHERE id = p_project_id;
-
-    -- Update user's file_count in profiles
-    UPDATE public.profiles
-    SET file_count = file_count + 1
-    WHERE id = p_user_id;
-
-    RETURN new_file_id;
-END;
-$function$
-;
-
-CREATE OR REPLACE FUNCTION public.handle_file_upload(p_user_id uuid, p_project_id uuid, p_storage_objects_id uuid)
- RETURNS uuid
- LANGUAGE plpgsql
-AS $function$
-DECLARE
-    max_file_size bigint;
-    project_data_limit bigint;
-    project_current_usage bigint;
-    new_file_id UUID;
-    v_file_size bigint;
-    v_file_name text;
-BEGIN
-    -- Get file information from storage.objects
-    SELECT (metadata->>'size')::bigint, SPLIT_PART(name, '/', -1)
-    INTO v_file_size, v_file_name
-    FROM storage.objects
-    WHERE id = p_storage_objects_id;
-
-    -- Get the max file size for this project's subscription
-    max_file_size := public.get_max_file_size(p_project_id);
-
-    -- Check if the file size exceeds the max allowed size
-    IF v_file_size > max_file_size THEN
-        RAISE EXCEPTION 'File size exceeds the maximum allowed for this subscription tier (% bytes)', max_file_size;
-    END IF;
-
-    -- Get the project's data limit and current usage
-    SELECT data_limit, current_data_usage
-    INTO project_data_limit, project_current_usage
-    FROM public.projects
-    WHERE id = p_project_id;
-
-    -- Check if the new file would exceed the project's data limit
-    IF (project_current_usage + v_file_size) > project_data_limit THEN
-        RAISE EXCEPTION 'Uploading this file would exceed the project''s data limit';
-    END IF;
-
-    -- Insert the new file record
-    INSERT INTO public.user_project_files (user_id, project_id, storage_objects_id)
-    VALUES (p_user_id, p_project_id, p_storage_objects_id)
-    RETURNING id INTO new_file_id;
-
-    -- Update project's current_data_usage and file_count
-    UPDATE public.projects
-    SET current_data_usage = current_data_usage + v_file_size,
-        file_count = file_count + 1,
-        is_full = CASE WHEN (current_data_usage + v_file_size) >= data_limit THEN true ELSE false END
-    WHERE id = p_project_id;
-
-    -- Update user's file_count in profiles
-    UPDATE public.profiles
-    SET file_count = file_count + 1
-    WHERE id = p_user_id;
-
-    RETURN new_file_id;
-END;
-$function$
-;
-
 CREATE OR REPLACE FUNCTION public.handle_new_user()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -492,72 +381,128 @@ END;
 $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.insert_user_project_files()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-BEGIN
-    -- Check if the conditions are met
-    IF NEW.bucket_id = 'projects' AND 
-       NEW.user_metadata->>'user_id' IS NOT NULL AND 
-       NEW.user_metadata->>'project_id' IS NOT NULL THEN
-        
-        -- Insert a new row into public.user_project_files
-        INSERT INTO public.user_project_files (user_id, project_id, storage_objects_id)
-        VALUES (
-            (NEW.user_metadata->>'user_id')::uuid,
-            (NEW.user_metadata->>'project_id')::uuid,
-            NEW.id
-        );
-    END IF;
-    
-    RETURN NEW;
-END;
-$function$
-;
 
-CREATE OR REPLACE FUNCTION public.on_file_delete()
- RETURNS trigger
- LANGUAGE plpgsql
- SECURITY DEFINER
-AS $function$
+CREATE OR REPLACE FUNCTION public.handle_project_upload()
+RETURNS TRIGGER AS $$
 DECLARE
   v_project_id UUID;
   v_file_size BIGINT;
   v_user_id UUID;
+  v_old_file_size BIGINT;
 BEGIN
-  -- Get the project_id, file_size, and user_id based on the deleted file
-  SELECT project_id, user_id INTO v_project_id, v_user_id
-  FROM public.user_project_files
-  WHERE storage_objects_id = OLD.id;
+  -- Check if the bucket_id is 'projects'
+  IF NEW.bucket_id = 'projects' THEN
+    -- Extract project_id and user_id from the file name
+    v_project_id := (storage.foldername(NEW.name))[1]::UUID;
+    v_user_id := (storage.foldername(NEW.name))[2]::UUID;
 
-  -- Get file size from storage.objects
-  SELECT (OLD.metadata->>'size')::bigint INTO v_file_size;
+    -- Get new file size
+    v_file_size := (NEW.metadata->>'size')::bigint;
 
-  -- Delete from user_project_files (this should cascade due to the foreign key)
-  DELETE FROM public.user_project_files
-  WHERE storage_objects_id = OLD.id;
+    -- Insert or update user_project_files
+    INSERT INTO public.user_project_files (user_id, project_id, storage_objects_id)
+    VALUES (v_user_id, v_project_id, NEW.id)
+    ON CONFLICT (storage_objects_id) 
+    DO UPDATE SET user_id = EXCLUDED.user_id, project_id = EXCLUDED.project_id;
 
-  -- Update project's current_data_usage and file_count
-  UPDATE public.projects
-  SET 
-    current_data_usage = current_data_usage - v_file_size,
-    file_count = file_count - 1,
-    is_full = CASE 
-      WHEN (current_data_usage - v_file_size) < data_limit THEN false 
-      ELSE is_full 
-    END
-  WHERE id = v_project_id;
+    -- Handle INSERT operation
+    IF (TG_OP = 'INSERT') THEN
+      -- Update project's current_data_usage, file_count, and is_full
+      UPDATE public.projects
+      SET 
+        current_data_usage = current_data_usage + v_file_size,
+        file_count = file_count + 1,
+        is_full = CASE 
+          WHEN (current_data_usage + v_file_size) >= data_limit THEN true 
+          ELSE false 
+        END
+      WHERE id = v_project_id;
 
-  -- Update user's file_count
-  UPDATE public.profiles
-  SET file_count = file_count - 1
-  WHERE id = v_user_id;
+      -- Update user's file_count
+      UPDATE public.profiles
+      SET file_count = file_count + 1
+      WHERE id = v_user_id;
+
+    -- Handle UPDATE operation
+    ELSIF (TG_OP = 'UPDATE') THEN
+      -- Get old file size
+      v_old_file_size := (OLD.metadata->>'size')::bigint;
+
+      -- Update project's current_data_usage and is_full
+      UPDATE public.projects
+      SET 
+        current_data_usage = current_data_usage - v_old_file_size + v_file_size,
+        is_full = CASE 
+          WHEN (current_data_usage - v_old_file_size + v_file_size) >= data_limit THEN true 
+          ELSE false 
+        END
+      WHERE id = v_project_id;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for INSERT operations
+CREATE TRIGGER after_project_file_insert
+AFTER INSERT ON storage.objects
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_project_upload();
+
+-- Create trigger for UPDATE operations
+CREATE TRIGGER after_project_file_update
+AFTER UPDATE ON storage.objects
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_project_upload();
+
+-- Function to handle project file deletions
+CREATE OR REPLACE FUNCTION public.handle_project_file_delete()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_project_id UUID;
+  v_user_id UUID;
+  v_file_size BIGINT;
+BEGIN
+  -- Check if the deleted object was in the 'projects' bucket
+  IF OLD.bucket_id = 'projects' THEN
+    -- Extract project_id and user_id from the file name
+    v_project_id := storage.foldername(OLD.name)[1]::UUID;
+    v_user_id := storage.foldername(OLD.name)[2]::UUID;
+
+    -- Get the file size
+    v_file_size := (OLD.metadata->>'size')::bigint;
+
+    -- Update project's current_data_usage, file_count, and is_full
+    UPDATE public.projects
+    SET 
+      current_data_usage = GREATEST(0, current_data_usage - v_file_size),
+      file_count = GREATEST(0, file_count - 1),
+      is_full = CASE 
+        WHEN (current_data_usage - v_file_size) < data_limit THEN false 
+        ELSE is_full 
+      END
+    WHERE id = v_project_id;
+
+    -- Update user's file_count
+    UPDATE public.profiles
+    SET file_count = GREATEST(0, file_count - 1)
+    WHERE id = v_user_id;
+
+    -- Delete the corresponding entry from user_project_files
+    DELETE FROM public.user_project_files
+    WHERE storage_objects_id = OLD.id;
+  END IF;
 
   RETURN OLD;
 END;
-$function$
-;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for DELETE operations
+CREATE TRIGGER before_project_file_delete
+BEFORE DELETE ON storage.objects
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_project_file_delete();
 
 create or replace view "public"."project_statistics" as  SELECT p.id AS project_id,
     p.name AS project_name,
@@ -1126,6 +1071,6 @@ using (((bucket_id = 'projects'::text) AND ((auth.uid())::text = (storage.folder
   WHERE (((projects.id)::text = (storage.foldername(objects.name))[1]) AND (projects.status = 'Active'::project_status))))));
 
 
-CREATE TRIGGER trigger_insert_user_project_files AFTER INSERT ON storage.objects FOR EACH ROW EXECUTE FUNCTION insert_user_project_files();
-
+ALTER TABLE public.user_project_files
+ADD CONSTRAINT user_project_files_storage_objects_id_key UNIQUE (storage_objects_id);
 

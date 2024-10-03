@@ -12,6 +12,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { Enums } from "@/database.types";
+import { Fragment } from "react";
 
 export const ProjectHeader = () => {
   const { projectId } = useParamHelper();
@@ -23,6 +24,7 @@ export const ProjectHeader = () => {
     queryKey: getProjectQueryKey(projectId),
     queryFn: () => getProject(projectId),
     enabled: !!projectId,
+    refetchOnMount: false,
   });
 
   if (isLoading) {
@@ -41,7 +43,7 @@ export const ProjectHeader = () => {
       case "Training":
         return <GraduationCap className="w-4 h-4 text-blue-500" />;
       default:
-        return <></>;
+        return <Fragment></Fragment>;
     }
   };
 
@@ -70,12 +72,12 @@ export const ProjectHeader = () => {
             </div>
             <div className="grid gap-2">
               <p className="text-muted-foreground">
-                {project.description?.toString()}
+                {project.description.description}
               </p>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1">
                   <FileIcon className="w-4 h-4" />
-                  <span>24 Files</span>
+                  <span>{project.file_count} Files</span>
                 </div>
                 <div className="flex items-center gap-1">
                   {renderStatusIcon(project.status)}
