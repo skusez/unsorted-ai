@@ -29,7 +29,7 @@ export const useRealtime = () => {
       },
       (payload) => {
         queryClient.setQueryData(
-          getUserScoreQueryKey(userId || undefined, projectId),
+          getUserScoreQueryKey(projectId),
           (oldData: any) => ({
             ...oldData,
             contribution_score: payload.new.contribution_score,

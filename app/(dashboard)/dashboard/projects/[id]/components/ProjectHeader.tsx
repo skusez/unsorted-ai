@@ -72,7 +72,7 @@ export const ProjectHeader = () => {
             </div>
             <div className="grid gap-2">
               <p className="text-muted-foreground">
-                {project.description.description}
+                {(project.description as any)?.description}
               </p>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1">
