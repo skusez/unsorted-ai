@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.17.6",
+    "@legendapp/state": "3.0.0-beta.7",
     "@lexical/code": "^0.17.1",
     "@lexical/file": "^0.17.1",
     "@lexical/link": "^0.17.1",

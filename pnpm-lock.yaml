@@ -11,6 +11,9 @@ importers:
       '@excalidraw/excalidraw':
         specifier: ^0.17.6
         version: 0.17.6(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@legendapp/state':
+        specifier: 3.0.0-beta.7
+        version: 3.0.0-beta.7(react@18.2.0)
       '@lexical/code':
         specifier: ^0.17.1
         version: 0.17.1
@@ -1158,6 +1161,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
+
+  '@legendapp/state@3.0.0-beta.7':
+    resolution: {integrity: sha512-PxpfAYk7DBzxegvCKwMJL8DhDxIrO0ge1t8zslgWe3vXxjUmTIRMXUUrSlzOGyOjYFbR4ymDchyKGivEEkUeeg==}
 
   '@lexical/clipboard@0.17.1':
     resolution: {integrity: sha512-OVqnEfWX8XN5xxuMPo6BfgGKHREbz++D5V5ISOiml0Z8fV/TQkdgwqbBJcUdJHGRHWSUwdK7CWGs/VALvVvZyw==}
@@ -5411,6 +5417,11 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
 
+  use-sync-external-store@1.2.2:
+    resolution: {integrity: sha512-PElTlVMwpblvbNqQ82d2n6RjStvdSoNe9FG28kNfz3WiXilJm4DdNkEzRhCZuIDwY8U08WVihhGR5iRqAwfDiw==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+
   utf-8-validate@5.0.10:
     resolution: {integrity: sha512-Z6czzLq4u8fPOyx7TU6X3dvUZVvoJmxSQ+IcrlmagKhilxlhZgxPK6C5Jqbkw1IDUmFTM+cz9QDnnLTwDz/2gQ==}
     engines: {node: '>=6.14.2'}
@@ -6780,6 +6791,12 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
+
+  '@legendapp/state@3.0.0-beta.7(react@18.2.0)':
+    dependencies:
+      use-sync-external-store: 1.2.2(react@18.2.0)
+    transitivePeerDependencies:
+      - react
 
   '@lexical/clipboard@0.17.1':
     dependencies:
@@ -12304,6 +12321,10 @@ snapshots:
       '@types/react': 18.2.46
 
   use-sync-external-store@1.2.0(react@18.2.0):
+    dependencies:
+      react: 18.2.0
+
+  use-sync-external-store@1.2.2(react@18.2.0):
     dependencies:
       react: 18.2.0
 

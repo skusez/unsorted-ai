@@ -45,7 +45,7 @@ export default function UserMenu({
         setIsOpen(false);
       }}
     >
-      <Wallet className="mr-2 h-4 w-4" />
+      <Wallet className="mr-2 h-4 w-4 " />
       <span className="">{truncatedAddress}</span>
     </Button>,
     <Button
@@ -78,37 +78,26 @@ export default function UserMenu({
       <DropdownMenuTrigger asChild>
         <Button
           disabled={!session?.id}
-          size={"none"}
           className={cn(
-            `rounded-full size-8 ${
-              isExpanded
-                ? "flex w-full h-10 items-center justify-start rounded-lg duration-200 delay-100 px-1.5 py-2 transition-colors hover:bg-accent hover:text-accent-foreground"
-                : ""
-            }`,
+            ` h-10 rounded-lg  overflow-hidden  flex justify-start transition-all  px-1.5  duration-200  hover:bg-accent hover:text-accent-foreground bg-primary w-full`,
             className
           )}
         >
-          <Avatar className="object-cover  size-8">
-            <AvatarImage
-              className="object-cover"
-              src={ensAvatar || undefined}
-              alt={truncatedAddress}
-            />
-            <AvatarFallback className="bg-primary">
-              <User className="w-4 h-4" />
-            </AvatarFallback>
-          </Avatar>
-          {isExpanded && (
-            <span
-              className={cn(
-                "ml-2 text-base text-muted-foreground",
-                addressClassName
-              )}
-            >
-              {truncatedAddress}
-            </span>
-          )}
-          <span className="sr-only">Open user menu</span>
+          <div className="flex ml-1.5 items-center">
+            <User className="size-5" />
+
+            {isExpanded && (
+              <span
+                className={cn(
+                  "ml-2 text-sm    text-muted-foreground",
+                  addressClassName
+                )}
+              >
+                {truncatedAddress}
+              </span>
+            )}
+            <span className="sr-only">Open user menu</span>
+          </div>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
