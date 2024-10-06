@@ -2,8 +2,6 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
-import { useParams } from "next/navigation";
-import { useSession } from "@/lib/auth";
 import { getProjectFilesQueryKey, getUserScoreQueryKey } from "../queryKeys";
 import { useParamHelper } from "./useParamHelper";
 
