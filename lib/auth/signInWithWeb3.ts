@@ -15,6 +15,7 @@ export async function signInWithWeb3(
   signature: Hex
 ): Promise<{ success: boolean }> {
   const adminClient = createAdminClient();
+  const supabase = createClient();
   const logDebug = (message: string, data?: any) => {
     if (enableDebug) {
       console.debug(`[signInWithWeb3] ${message}`, data);
@@ -54,7 +55,7 @@ export async function signInWithWeb3(
 
     if (profile?.id) {
       logDebug("Existing profile found, signing in");
-      const { data, error } = await adminClient.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: profile.email!,
         password: profile.web3_password!,
       });
