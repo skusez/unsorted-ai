@@ -14,7 +14,6 @@ export async function signInWithWeb3(
   message: string,
   signature: Hex
 ): Promise<{ success: boolean }> {
-  const supabase = createClient();
   const adminClient = createAdminClient();
   const logDebug = (message: string, data?: any) => {
     if (enableDebug) {
@@ -44,7 +43,7 @@ export async function signInWithWeb3(
     // Check if a user with this wallet address exists
     logDebug("Checking for existing wallet");
 
-    const { data: profile, error: fetchError } = await supabase
+    const { data: profile, error: fetchError } = await adminClient
       .from("user_profiles")
       .select()
       .eq("wallet_address", address.toLowerCase())
@@ -55,8 +54,7 @@ export async function signInWithWeb3(
 
     if (profile?.id) {
       logDebug("Existing profile found, signing in");
-
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await adminClient.auth.signInWithPassword({
         email: profile.email!,
         password: profile.web3_password!,
       });
@@ -67,15 +65,16 @@ export async function signInWithWeb3(
       const email = `${address.toLowerCase()}@web3.user`;
       const password = await generateSecurePassword();
 
-      const { data: auth_account, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
+      const { data: auth_account, error } =
+        await adminClient.auth.admin.createUser({
+          email,
+          password,
+          user_metadata: {
             web3_password: password, // Store the password in user metadata
           },
-        },
-      });
+
+          email_confirm: true,
+        });
 
       if (error) throw error;
 
@@ -89,7 +88,7 @@ export async function signInWithWeb3(
 
       logDebug("Signing in user");
       const { data: signInData, error: signInError } =
-        await supabase.auth.signInWithPassword({
+        await adminClient.auth.signInWithPassword({
           email,
           password,
         });
