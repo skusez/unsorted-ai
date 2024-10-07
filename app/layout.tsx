@@ -16,7 +16,7 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "Decentralized AI Research",
+  title: "Unsorted AI",
   description:
     "Contribute your data and earn rewards through our secure, blockchain-powered platform.",
 };
