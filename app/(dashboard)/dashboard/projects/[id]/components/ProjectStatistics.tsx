@@ -1,14 +1,18 @@
 "use client";
+import { useEffect, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProject, getUserScore } from "../actions";
 import { getProjectQueryKey, getUserScoreQueryKey } from "../queryKeys";
 import { useParamHelper } from "../hooks/useParamHelper";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toGigabytes } from "@/utils/utils";
+import { createClient } from "@/utils/supabase/client";
 
 export const ProjectStatistics = () => {
   const { projectId } = useParamHelper();
+  const queryClient = useQueryClient();
+  const supabase = useMemo(() => createClient(), []);
   const { data: project, isLoading } = useQuery({
     queryKey: getProjectQueryKey(projectId),
     queryFn: () => getProject(projectId),

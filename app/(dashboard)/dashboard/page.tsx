@@ -104,7 +104,12 @@ const SearchAndPageSize: React.FC<SearchAndPageSizeProps> = ({
         </SelectTrigger>
         <SelectContent>
           {(
-            ["Active", "Proposed", "Training"] as Enums<"project_status">[]
+            [
+              "Active",
+              "Proposed",
+              "Training",
+              "Complete",
+            ] as Enums<"project_status">[]
           ).map((status) => (
             <SelectItem key={status} value={status}>
               {status}

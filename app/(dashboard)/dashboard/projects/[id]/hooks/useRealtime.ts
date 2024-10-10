@@ -2,19 +2,43 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
-import { getProjectFilesQueryKey, getUserScoreQueryKey } from "../queryKeys";
+import {
+  getProjectFilesQueryKey,
+  getUserScoreQueryKey,
+  getProjectQueryKey,
+} from "../queryKeys";
 import { useParamHelper } from "./useParamHelper";
 
 const supabase = createClient();
 
-export const useRealtime = () => {
+export function useRealtime() {
   const { projectId, userId } = useParamHelper();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!userId) return;
-    // Create a single channel for all subscriptions
-    const channel = supabase.channel("db-changes");
+    if (!projectId || !userId) return;
+
+    const channel = supabase.channel(`project-updates:${projectId}`);
+
+    // Project updates
+    channel.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "projects",
+        filter: `id=eq.${projectId}`,
+      },
+      (payload) => {
+        queryClient.setQueryData(
+          getProjectQueryKey(projectId),
+          (oldData: any) => ({
+            ...oldData,
+            ...payload.new,
+          })
+        );
+      }
+    );
 
     // User's own contribution score
     channel.on(
@@ -23,16 +47,18 @@ export const useRealtime = () => {
         event: "UPDATE",
         schema: "public",
         table: "user_project_files",
-        filter: `user_id=eq.${userId} AND project_id=eq.${projectId}`,
+        filter: `user_id=eq.${userId}`,
       },
       (payload) => {
-        queryClient.setQueryData(
-          getUserScoreQueryKey(projectId),
-          (oldData: any) => ({
-            ...oldData,
-            contribution_score: payload.new.contribution_score,
-          })
-        );
+        console.log(payload);
+        if (payload.new.project_id === projectId) {
+          queryClient.setQueryData(
+            getUserScoreQueryKey(projectId),
+            (oldData: number) => {
+              return oldData + payload.new.contribution_score;
+            }
+          );
+        }
       }
     );
 
@@ -45,7 +71,7 @@ export const useRealtime = () => {
         table: "user_project_files",
         filter: `project_id=eq.${projectId}`,
       },
-      (payload) => {
+      () => {
         queryClient.invalidateQueries({
           queryKey: getProjectFilesQueryKey(projectId),
         });
@@ -71,9 +97,5 @@ export const useRealtime = () => {
     };
   }, [projectId, userId, queryClient]);
 
-  //   return back the userId and projectId to be reused
-  return {
-    userId: userId,
-    projectId,
-  };
-};
+  return { userId, projectId };
+}
