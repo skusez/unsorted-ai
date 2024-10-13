@@ -1,370 +1,151 @@
-"use client";
-
-import { useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import {
-  CalendarPlusIcon,
-  FileText,
-  PenBox,
-  UploadIcon,
-  User,
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import React from "react";
+import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import TokenBalanceChart from "./user/token-balance-chart";
+import DeviceList from "./user/device-list";
+import { Header } from "../Header";
+
+import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/client";
-import { Enums, Tables } from "@/database.types";
-import { useDebounce } from "use-debounce";
-import Image from "@/components/ui/image";
-import { toGigabytes } from "@/utils/utils";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { orderBy } from "lodash-es";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const CardSkeleton = () => (
-  <Card className="w-full h-[300px]">
-    <CardHeader>
-      <Skeleton className="h-4 w-2/3" />
-    </CardHeader>
-    <CardContent className="space-y-2">
-      <Skeleton className="h-24 w-full" />
-      <Skeleton className="h-4 w-full" />
-      <Skeleton className="h-4 w-2/3" />
-    </CardContent>
-    <CardFooter>
-      <Skeleton className="h-8 w-24" />
-    </CardFooter>
-  </Card>
-);
+export const metadata: Metadata = {
+  title: "User Dashboard",
+  description: "View your token balance, devices, and data usage",
+};
 
-const NoDataFound = () => (
-  <div className="text-center py-10">
-    <p className="text-muted-foreground">
-      No projects found. Try adjusting your search criteria.
-    </p>
-  </div>
-);
+// Mock user data
+const userData = {
+  name: "Alice Johnson",
+  tokenBalance: [
+    { date: "2023-01-01", balance: 20 },
+    { date: "2023-01-02", balance: 30 },
+    { date: "2023-01-03", balance: 50 },
+    { date: "2023-01-04", balance: 80 },
+    { date: "2023-01-05", balance: 120 },
+  ],
+  devices: [
+    { name: "Apple Watch", status: "online", tokensEarned: 50 },
+    { name: "iPhone", status: "offline", tokensEarned: 30 },
+    { name: "MacBook", status: "online", tokensEarned: 70 },
+  ],
+};
 
-interface SearchAndPageSizeProps {
-  search: string;
-  setSearch: (value: string) => void;
-  pageSize: number;
-  setPageSize: (value: number) => void;
-  status: Enums<"project_status"> | undefined;
-  setStatus: (value: Enums<"project_status"> | undefined) => void;
-}
-
-const SearchAndPageSize: React.FC<SearchAndPageSizeProps> = ({
-  search,
-  setSearch,
-  pageSize,
-  setPageSize,
-  status,
-  setStatus,
-}) => (
-  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-    <Input
-      placeholder="Search projects..."
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      className="w-full sm:max-w-md"
-    />
-    <div className="flex items-center gap-2">
-      <Label htmlFor="status">Status</Label>
-      <Select
-        value={status}
-        onValueChange={(value) => setStatus(value as Enums<"project_status">)}
-      >
-        <SelectTrigger className="w-24">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {(
-            [
-              "Active",
-              "Proposed",
-              "Training",
-              "Complete",
-            ] as Enums<"project_status">[]
-          ).map((status) => (
-            <SelectItem key={status} value={status}>
-              {status}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-    <div className="flex items-center gap-2">
-      <Label htmlFor="page-size">Show</Label>
-      <Select
-        value={pageSize.toString()}
-        onValueChange={(value) => setPageSize(Number(value))}
-      >
-        <SelectTrigger className="w-24">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {[10, 20, 50, 100].map((size) => (
-            <SelectItem key={size} value={size.toString()}>
-              {size}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Label htmlFor="page-size">entries</Label>
-    </div>
-  </div>
-);
-
-export default function ProjectCards() {
+export default async function DashboardPage() {
   const supabase = createClient();
-  const [search, setSearch] = useState("");
-  const [pageSize, setPageSize] = useState(10);
-  const [status, setStatus] = useState<Enums<"project_status"> | undefined>(
-    "Active"
-  );
 
-  const [searchDebounced] = useDebounce(search, 500);
-  const router = useRouter();
-  const { data, fetchNextPage, hasNextPage, isFetching, isLoading } =
-    useInfiniteQuery({
-      queryKey: ["projects", searchDebounced, pageSize, status],
-      queryFn: async ({ pageParam = undefined }) => {
-        const { data, error } = await supabase
-          .rpc("get_paginated_projects", {
-            p_search: searchDebounced,
-            p_page_size: pageSize,
-            p_cursor: pageParam,
-            ...(status ? { p_status: status } : {}),
-          })
-          .returns<{
-            next_cursor: string | null;
-            projects: Tables<"project_statistics">[];
-          }>();
-        if (error) {
-          throw error;
-        }
-        return data;
-      },
-      initialPageParam: undefined,
-      getNextPageParam: (lastPage: { next_cursor: string | null }) =>
-        lastPage.next_cursor,
-    });
+  // Fetch all projects
+  const { data: projects, error } = await supabase
+    .from("projects")
+    .select(
+      `
+      id,
+      name,
+      description,
+      image_url,
+      project_data_types (
+        data_type_id
+      )
+    `
+    )
+    .order("created_at")
+    .limit(10); // Limit to 10 projects for this example
 
-  const allProjects = data?.pages.flatMap((page) => page.projects) ?? [];
-
-  const TooltipWithIcon = ({
-    icon,
-    label,
-    value,
-  }: {
-    icon: React.ReactNode;
-    label: string;
-    value: React.ReactNode | null;
-  }) => {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger className="flex items-center gap-1">
-            {icon}
-            <span>{value}</span>
-          </TooltipTrigger>
-          <TooltipContent>{label}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  };
+  if (error) {
+    console.error("Error fetching projects:", error);
+    return <div>Error loading projects. Please try again later.</div>;
+  }
 
   return (
-    <div className="flex flex-col gap-4">
-      <SearchAndPageSize
-        status={status}
-        setStatus={setStatus}
-        search={search}
-        setSearch={setSearch}
-        pageSize={pageSize}
-        setPageSize={setPageSize}
-      />
-
-      {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <CardSkeleton key={index} />
-          ))}
-        </div>
-      ) : allProjects.length === 0 ? (
-        <NoDataFound />
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {allProjects.map((project) => (
-            <Card
-              onClick={() =>
-                router.push(`/dashboard/projects/${project.project_id}`)
-              }
-              key={project.project_id}
-              role="button"
-              tabIndex={0}
-              aria-label={`View details for project: ${project.project_name}`}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  router.push(`/dashboard/projects/${project.project_id}`);
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <Alert variant="default" className="rounded-none border-none ">
+        <AlertDescription className="w-full text-center">
+          <Link
+            href={`/dashboard/projects/${process.env.NEXT_PUBLIC_DEMO_PROJECT_ID}`}
+            className="text-white font-heading hover:underline"
+          >
+            Try our demo data evaluation
+          </Link>
+        </AlertDescription>
+      </Alert>
+      <div className="mb-4">
+        <Header />
+      </div>
+      <div className="space-y-12">
+        <section className="space-y-4 max-w-full">
+          <h1 className="text-3xl font-bold">Welcome back, {userData.name}</h1>
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Token Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="absolute font-bold text-3xl">
+                {
+                  userData.tokenBalance[userData.tokenBalance.length - 1]
+                    .balance
                 }
-              }}
-              className="h-[300px] relative cursor-pointer overflow-hidden"
-            >
-              <Image
-                src={
-                  project.project_image ||
-                  "https://source.unsplash.com/random/?abstract"
-                }
-                alt={project.project_name || "Project image"}
-                fill
-                className="object-cover object-center opacity-50 pointer-events-none"
-              />
-              <div className="relative z-10 h-full flex flex-col bg-gradient-to-t from-background/80 to-background/20">
-                <CardHeader>
-                  <CardTitle className="flex justify-between ">
-                    <div className="flex flex-col gap-2">
-                      {project.project_name}
-                      <Badge
-                        className="w-fit"
-                        variant={
-                          project.status === "Complete"
-                            ? "secondary"
-                            : project.status === "Active"
-                              ? "outline"
-                              : "default"
-                        }
-                      >
-                        {project.status}
-                      </Badge>
-                    </div>
-                    <Button variant={"ghost"} asChild>
-                      <Link
-                        href={`/dashboard/projects/${project.project_id}`}
-                        prefetch={false}
-                        className="flex z-10 items-center gap-2"
-                      >
-                        Contribute <UploadIcon className="size-4" />
-                      </Link>
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 h-full flex flex-col justify-between">
-                  <div className="text-sm text-muted-foreground h-12 overflow-y-auto">
-                    {(project.description as any)?.description}
-                  </div>
-
-                  <Separator />
-                  <div className="flex-1 flex flex-col justify-center space-y-2">
-                    <div className="flex text-sm font-bold justify-between">
-                      <div className="inline-flex items-center text-muted-foreground space-x-2">
-                        <TooltipWithIcon
-                          icon={<User className="size-4" />}
-                          label="Contributors"
-                          value={project.contributor_count}
-                        />
-                        <TooltipWithIcon
-                          icon={<FileText className="size-4" />}
-                          label="Files"
-                          value={project.file_count}
-                        />
-                      </div>
-                      <TooltipWithIcon
-                        icon={<PenBox className="size-4" />}
-                        label="Average Contribution Score"
-                        value={`${(project.avg_contribution_score || 0).toFixed(2)}`}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-muted-foreground inline-flex items-center justify-between w-full text-xs">
-                        <span>Progress</span>
-                        <div>
-                          {toGigabytes(project.current_data_usage || 0)} GB /{" "}
-                          {toGigabytes(project.data_limit || 1)} GB
-                        </div>
-                      </Label>
-                      <Progress
-                        value={Math.min(
-                          100,
-                          ((project.current_data_usage || 0) /
-                            (project.data_limit || 1)) *
-                            100
-                        )}
-                        // Comment: Calculate progress percentage, capped at 100%
-                        className="h-2"
-                      />
-                    </div>
-                  </div>
-                  {/* <div>
-                    <div>
-                      <span className="text-sm">
-                        Participants: {project.contributor_count}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Uploaded: {project.file_count}
-                    </p>
-                  </div>
-                  Data usage progress */}
-                </CardContent>
-                <CardFooter className="text-xs text-muted-foreground justify-end">
-                  {/* human readable date */}
-                  <TooltipWithIcon
-                    icon={<CalendarPlusIcon className="size-4" />}
-                    label="Created at"
-                    value={new Date(project.created_at || "").toLocaleString(
-                      undefined,
-                      {
-                        year: "2-digit",
-                        month: "short",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      }
-                    )}
-                  />
-                </CardFooter>
               </div>
-            </Card>
-          ))}
-        </div>
-      )}
+              <TokenBalanceChart data={userData.tokenBalance} />
+            </CardContent>
+          </Card>
+        </section>
 
-      {hasNextPage && (
-        <Button
-          onClick={() => fetchNextPage()}
-          disabled={isFetching}
-          className="mt-4"
-        >
-          {isFetching ? "Loading..." : "Load More"}
-        </Button>
-      )}
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold">Your Devices</h2>
+          <DeviceList devices={userData.devices as any[]} />
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold">
+            Here's where your data is being used
+          </h2>
+          <div className="w-[calc(100vw-2rem)] sm:w-full -mx-4 sm:mx-0">
+            <ScrollArea className="w-full">
+              <div className="flex space-x-4 pb-4 px-4 sm:px-0">
+                {projects?.map((project) => (
+                  <Link
+                    href={`/dashboard/projects/${project.id}`}
+                    key={project.id}
+                    prefetch={false}
+                  >
+                    <Card className="w-[300px] h-[400px] flex-shrink-0">
+                      <CardContent className="p-4">
+                        <Image
+                          src={project.image_url || "/placeholder.svg"}
+                          alt={project.name}
+                          width={300}
+                          quality={100}
+                          height={300}
+                          className="w-full h-32 object-cover rounded-md mb-4"
+                        />
+                        <h3 className="font-semibold text-lg">
+                          {project.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {(project.description as any)?.description ||
+                            "No description available"}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {project.project_data_types.map((type) => (
+                            <Badge key={type.data_type_id}>
+                              {type.data_type_id}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

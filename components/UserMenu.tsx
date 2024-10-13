@@ -79,7 +79,7 @@ export default function UserMenu({
         <Button
           disabled={!session?.id}
           className={cn(
-            ` h-10 rounded-lg  overflow-hidden  flex justify-start transition-all  px-1.5  duration-200  hover:bg-accent hover:text-accent-foreground bg-primary w-full`,
+            ` h-10 rounded-lg  overflow-hidden  flex justify-start transition-all  px-1.5  duration-200   bg-primary w-full`,
             className
           )}
         >
@@ -87,12 +87,7 @@ export default function UserMenu({
             <User className="size-5" />
 
             {isExpanded && (
-              <span
-                className={cn(
-                  "ml-2 text-sm    text-muted-foreground",
-                  addressClassName
-                )}
-              >
+              <span className={cn("ml-2 text-sm ", addressClassName)}>
                 {truncatedAddress}
               </span>
             )}

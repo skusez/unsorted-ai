@@ -93,8 +93,10 @@ export async function signInWithWeb3(
           email,
           password,
         });
-
-      if (signInError) throw signInError;
+      if (signInError) {
+        logDebug("Error signing in user:", signInError);
+        throw signInError;
+      }
 
       return { success: true };
     }

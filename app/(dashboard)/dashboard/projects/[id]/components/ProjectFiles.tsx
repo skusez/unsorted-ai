@@ -78,6 +78,7 @@ export const ProjectFiles = () => {
   };
 
   const handleDelete = async (fileName: string) => {
+    console.log(`${projectId}/${userId}/${fileName}`);
     const { error } = await supabase.storage
       .from("projects")
       .remove([`${projectId}/${userId}/${fileName}`]);

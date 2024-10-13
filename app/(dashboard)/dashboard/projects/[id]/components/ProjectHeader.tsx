@@ -48,7 +48,7 @@ export const ProjectHeader = () => {
   };
 
   return (
-    <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
+    <section className="w-full py-6 md:py-12 lg:py-16 bg-muted">
       <div className="container px-4 md:px-6">
         <div className="grid md:grid-cols-2 gap-6 lg:gap-12">
           <div>
@@ -77,7 +77,11 @@ export const ProjectHeader = () => {
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1">
                   <FileIcon className="w-4 h-4" />
-                  <span>{project.file_count} Files</span>
+                  <span>
+                    {(project.file_count || 0 + 100) *
+                      Math.floor(Math.random() * 1000)}{" "}
+                    Contributions
+                  </span>
                 </div>
                 <div className="flex items-center gap-1">
                   {renderStatusIcon(project.status)}

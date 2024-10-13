@@ -757,6 +757,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          category_name: string
+        }
+        Insert: {
+          category_name: string
+        }
+        Update: {
+          category_name?: string
+        }
+        Relationships: []
+      }
+      data_types: {
+        Row: {
+          icon_url: string | null
+          name: string
+        }
+        Insert: {
+          icon_url?: string | null
+          name: string
+        }
+        Update: {
+          icon_url?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
+      device_types: {
+        Row: {
+          icon_url: string | null
+          name: string
+        }
+        Insert: {
+          icon_url?: string | null
+          name: string
+        }
+        Update: {
+          icon_url?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
+      devices: {
+        Row: {
+          device_type_id: string | null
+          icon_url: string | null
+          id: number
+          name: string
+        }
+        Insert: {
+          device_type_id?: string | null
+          icon_url?: string | null
+          id?: number
+          name: string
+        }
+        Update: {
+          device_type_id?: string | null
+          icon_url?: string | null
+          id?: number
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_device_type_id_fkey"
+            columns: ["device_type_id"]
+            isOneToOne: false
+            referencedRelation: "device_types"
+            referencedColumns: ["name"]
+          },
+        ]
+      }
       nonces: {
         Row: {
           created_at: string | null
@@ -823,22 +894,130 @@ export type Database = {
           },
         ]
       }
+      project_categories: {
+        Row: {
+          category_id: string
+          project_id: string
+        }
+        Insert: {
+          category_id?: string
+          project_id: string
+        }
+        Update: {
+          category_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["category_name"]
+          },
+          {
+            foreignKeyName: "project_categories_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_statistics"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_categories_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_data_types: {
+        Row: {
+          data_type_id: string
+          project_id: string
+        }
+        Insert: {
+          data_type_id?: string
+          project_id: string
+        }
+        Update: {
+          data_type_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_data_types_data_type_id_fkey"
+            columns: ["data_type_id"]
+            isOneToOne: false
+            referencedRelation: "data_types"
+            referencedColumns: ["name"]
+          },
+          {
+            foreignKeyName: "project_data_types_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_statistics"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_data_types_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_devices: {
+        Row: {
+          device_type_id: string
+          project_id: string
+        }
+        Insert: {
+          device_type_id: string
+          project_id: string
+        }
+        Update: {
+          device_type_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_devices_device_type_id_fkey"
+            columns: ["device_type_id"]
+            isOneToOne: false
+            referencedRelation: "device_types"
+            referencedColumns: ["name"]
+          },
+          {
+            foreignKeyName: "project_devices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_statistics"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_devices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_managers: {
         Row: {
           created_at: string | null
-          id: string
           project_id: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
-          id?: string
           project_id: string
           user_id: string
         }
         Update: {
           created_at?: string | null
-          id?: string
           project_id?: string
           user_id?: string
         }
@@ -878,6 +1057,7 @@ export type Database = {
           created_at: string | null
           current_data_usage: number | null
           data_limit: number
+          demo_created_at: string | null
           description: Json | null
           file_count: number | null
           id: string
@@ -893,6 +1073,7 @@ export type Database = {
           created_at?: string | null
           current_data_usage?: number | null
           data_limit: number
+          demo_created_at?: string | null
           description?: Json | null
           file_count?: number | null
           id?: string
@@ -908,6 +1089,7 @@ export type Database = {
           created_at?: string | null
           current_data_usage?: number | null
           data_limit?: number
+          demo_created_at?: string | null
           description?: Json | null
           file_count?: number | null
           id?: string
@@ -1002,6 +1184,46 @@ export type Database = {
           },
         ]
       }
+      user_devices: {
+        Row: {
+          created_at: string
+          device_id: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_devices_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_devices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_devices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_project_files: {
         Row: {
           contribution_score: number | null
@@ -1091,6 +1313,8 @@ export type Database = {
       }
       user_project_scores: {
         Row: {
+          avg_score: number | null
+          file_count: number | null
           project_id: string | null
           total_score: number | null
           user_id: string | null

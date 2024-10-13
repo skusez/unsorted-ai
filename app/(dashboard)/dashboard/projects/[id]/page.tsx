@@ -12,6 +12,7 @@ import {
   dehydrate,
 } from "@tanstack/react-query";
 import { ProjectPageClient } from "./page.client";
+import { Header } from "@/app/(dashboard)/Header";
 
 async function Projects({ params }: { params: { id: string } }) {
   const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ async function Projects({ params }: { params: { id: string } }) {
   const state = dehydrate(queryClient);
   return (
     <HydrationBoundary state={state}>
+      <Header />
       <ProjectPageClient />
     </HydrationBoundary>
   );

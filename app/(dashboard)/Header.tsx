@@ -1,24 +1,32 @@
+"use client";
+
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import {
-  HomeIcon,
-  LineChartIcon,
-  MenuIcon,
-  Package2Icon,
-  PackageIcon,
-  SettingsIcon,
-  ShoppingCartIcon,
-  UsersIcon,
-  SearchIcon,
-} from "lucide-react";
-import Link from "next/link";
-
+import { MenuIcon, SearchIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Breadcrumbs } from "./Breadcrumbs";
+import { SidebarContent } from "./sidebar/sidebar-content";
+import { useState, useEffect } from "react";
+import { useDebounce } from "use-debounce";
 
-export function Header() {
+export function Header({
+  setSearch = () => {},
+}: {
+  setSearch?: (value: string) => void;
+}) {
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch] = useDebounce(searchInput, 500);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchInput(e.target.value);
+  };
+
+  useEffect(() => {
+    setSearch(debouncedSearch);
+  }, [debouncedSearch, setSearch]);
+
   return (
-    <header className="sticky top-0 py-4 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+    <header className=" py-4 z-30 flex h-14 items-center gap-4   sm:static sm:h-auto sm:border-0 sm:bg-transparent ">
       <Sheet>
         <SheetTrigger asChild>
           <Button size="icon" variant="outline" className="sm:hidden">
@@ -26,8 +34,8 @@ export function Header() {
             <span className="sr-only">Toggle Menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="sm:max-w-xs">
-          <MobileNav />
+        <SheetContent side="left" className="p-0 pt-8 sm:max-w-xs">
+          <SidebarContent isMobile />
         </SheetContent>
       </Sheet>
       <Breadcrumbs />
@@ -35,58 +43,12 @@ export function Header() {
         <SearchIcon className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Search..."
+          placeholder="Search projects..."
+          value={searchInput}
+          onChange={handleSearchChange}
           className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
         />
       </div>
     </header>
-  );
-}
-
-function MobileNav() {
-  return (
-    <nav className="grid gap-6 text-lg font-medium">
-      <Link
-        href="#"
-        className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-        prefetch={false}
-      >
-        <Package2Icon className="h-5 w-5 transition-all group-hover:scale-110" />
-        <span className="sr-only">Acme Inc</span>
-      </Link>
-      <NavLink href="#" icon={HomeIcon} label="Dashboard" />
-      <NavLink href="#" icon={ShoppingCartIcon} label="Orders" />
-      <NavLink href="#" icon={PackageIcon} label="Models" isActive />
-      <NavLink href="#" icon={UsersIcon} label="Customers" />
-      <NavLink href="#" icon={LineChartIcon} label="Analytics" />
-      <NavLink href="#" icon={SettingsIcon} label="Settings" />
-    </nav>
-  );
-}
-
-function NavLink({
-  href,
-  icon: Icon,
-  label,
-  isActive = false,
-}: {
-  href: string;
-  icon: React.ElementType;
-  label: string;
-  isActive?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center gap-4 px-2.5 ${
-        isActive
-          ? "text-foreground"
-          : "text-muted-foreground hover:text-foreground"
-      }`}
-      prefetch={false}
-    >
-      <Icon className="h-5 w-5" />
-      {label}
-    </Link>
   );
 }
