@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 
 // Mock user data
 const userData = {
-  name: "Alice Johnson",
+  name: "",
   tokenBalance: [
     { date: "2023-01-01", balance: 20 },
     { date: "2023-01-02", balance: 30 },

@@ -42,7 +42,7 @@ export const ProjectStatistics = () => {
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {isUserScoreLoading ? (
+      {/* {isUserScoreLoading ? (
         <StatisticSkeleton />
       ) : (
         <Card>
@@ -55,7 +55,7 @@ export const ProjectStatistics = () => {
             </div>
           </CardContent>
         </Card>
-      )}
+      )} */}
       <Card>
         <CardHeader>
           <CardTitle>Total Files</CardTitle>

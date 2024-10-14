@@ -48,16 +48,16 @@ export const ProjectHeader = () => {
   };
 
   return (
-    <section className="w-full py-6 md:py-12 lg:py-16 bg-muted">
+    <section className="w-full py-4 md:py-6 lg:py-8 bg-muted">
       <div className="container px-4 md:px-6">
         <div className="grid md:grid-cols-2 gap-6 lg:gap-12">
           <div>
             <img
-              src="/placeholder.svg"
+              src={project.image_url || "/placeholder.svg"}
               width="600"
               height="400"
               alt="Project"
-              className="w-full rounded-lg object-cover"
+              className="w-1/2 rounded-lg object-cover"
               style={{ aspectRatio: "600/400", objectFit: "cover" }}
             />
           </div>

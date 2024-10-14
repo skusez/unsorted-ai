@@ -124,7 +124,7 @@ INSERT INTO public.profiles (id, wallet_address, email, token_balance, total_con
 ('b5f9e3a0-5c4d-4c4d-9e6f-e14e4e2e5a6b', '0x2345678901234567890123456789012345678901', 'user2@example.com', 200, 75, 8),
 ('c3d2a1b0-9e8d-7c6b-5a4f-3e2d1c0b9a8f', '0x3456789012345678901234567890123456789012', 'user3@example.com', 150, 60, 6);
 
--- Seed data for projects
+Seed data for projects
 INSERT INTO public.projects (owner_id, name, description, image_url, status, data_limit, current_data_usage, file_count, is_full, subscription_id) VALUES
 ('d7bed82b-3f97-4646-8800-1d1739e8c8f5', 'Unsorted demo', '{"description": "This AI is an expert at hand written text. Contribute your drawings to receive a score."}', '/alpha.jpg', 'Active', 1073741824, 0, 0, false, (SELECT id FROM public.subscriptions WHERE tier = 'Basic' LIMIT 1)),
 ('b5f9e3a0-5c4d-4c4d-9e6f-e14e4e2e5a6b', 'Smart Watch Biometrics', '{"description": "Uses your wearable device to anonymously track your biometrics for health research."}', '/smartwatch-biometrics.jpg', 'Active', 5368709120, 0, 0, false, (SELECT id FROM public.subscriptions WHERE tier = 'Pro' LIMIT 1)),
