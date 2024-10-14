@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { getProjectFiles } from "../actions";
 import { getProjectFilesQueryKey } from "../queryKeys";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useParamHelper } from "../hooks/useParamHelper";
@@ -24,7 +23,7 @@ import { FileIcon, DownloadIcon, TrashIcon } from "lucide-react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-import DrawingModal from "./DrawingModal";
+import DrawingModal from "./DrawingModalV2";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 

@@ -77,7 +77,7 @@ export default async function DashboardPage() {
       </div>
       <div className="space-y-12">
         <section className="space-y-4 max-w-full">
-          <h1 className="text-3xl font-bold">Welcome back, {userData.name}</h1>
+          <h1 className="text-3xl font-bold">Welcome back</h1>
           <Card>
             <CardHeader>
               <CardTitle>Your Token Balance</CardTitle>

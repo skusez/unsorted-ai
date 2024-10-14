@@ -29,7 +29,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "seed-uploads.mjs",
-    "seed-uploads.mts"
+    "seed-uploads.mts",
+    "app/(dashboard)/dashboard/projects/[id]/components/DrawingModalV2tsx"
   ],
   "exclude": ["node_modules"]
 }
