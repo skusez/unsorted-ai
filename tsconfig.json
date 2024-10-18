@@ -30,7 +30,9 @@
     ".next/types/**/*.ts",
     "seed-uploads.mjs",
     "seed-uploads.mts",
-    "app/(dashboard)/dashboard/projects/[id]/components/DrawingModalV2tsx"
+    "app/(dashboard)/dashboard/projects/[id]/components/DrawingModalV2tsx",
+    "app/classify/route.js",
+    "app/classify/pipeline.js"
   ],
   "exclude": ["node_modules"]
 }

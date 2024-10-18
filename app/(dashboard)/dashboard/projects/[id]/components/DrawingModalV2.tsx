@@ -43,14 +43,15 @@ function extractNumbersFromParsedText(
   expectedCount: number
 ): (number | null)[] {
   let numbers: (number | null)[] = [];
+  const regex = /\b(\d+(?:\.\d+)?)\b/g;
+  const matches = parsedText.match(regex);
 
-  for (let i = 1; i < expectedCount + 1; i++) {
-    if (parsedText.includes(i.toString())) {
-      numbers.push(i);
-    } else if ([1, 10].includes(i)) {
-      if (parsedText.includes("L")) {
-        numbers.push(i);
-      }
+  for (let i = 0; i < expectedCount; i++) {
+    if (matches && matches[i]) {
+      const num = parseFloat(matches[i]);
+      numbers.push(isNaN(num) ? null : num);
+    } else if ([1, 10].includes(i + 1) && parsedText.includes("L")) {
+      numbers.push(i + 1);
     } else {
       numbers.push(null);
     }
@@ -123,64 +124,37 @@ const DrawingModal: React.FC<DrawingModalProps> = ({
         stitchCanvas.toBlob(resolve as BlobCallback, "image/png")
       );
 
-      // Create a debug URL for the stitched image
-      const debugImageUrl = URL.createObjectURL(stitchedBlob);
-      console.log("Debug stitched image URL:", debugImageUrl);
-
       // Prepare FormData for upload
       const formData = new FormData();
-      formData.append("filetype", "PNG");
-      formData.append("file", stitchedBlob, "stitched.png");
-      formData.append(
-        "apikey",
-        process.env.NEXT_PUBLIC_OCR_SPACE_API_KEY as string
-      );
+      formData.append("image", stitchedBlob, "stitched.png");
+      try {
+        const response = await fetch("/api/image-to-text", {
+          method: "POST",
+          body: formData,
+        });
 
-      let retries = 0;
-      while (retries < MAX_RETRIES) {
-        try {
-          const response = await fetch("https://api.ocr.space/parse/image", {
-            method: "POST",
-            body: formData,
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const data = await response.json();
-          console.log("Stitched image uploaded successfully:", data);
-
-          if (data.ParsedResults[0].ParsedText === "") {
-            throw new Error("Empty response from OCR API");
-          }
-
-          const parsedText = data.ParsedResults[0].ParsedText;
-          const numbers = extractNumbersFromParsedText(
-            parsedText,
-            drawingCount
-          );
-          console.log("Extracted numbers:", numbers);
-          setParsedNumbers(numbers);
-          setShowSummary(true);
-          setIsLoading(false);
-
-          // save result to supabase
-
-          return "Stitched image uploaded";
-        } catch (error) {
-          console.error(
-            `Error uploading stitched image (attempt ${retries + 1}):`,
-            error
-          );
-          retries++;
-          if (retries >= MAX_RETRIES) {
-            setIsLoading(false);
-            toast.error("Experiencing network issues. Please try again later.");
-            throw error;
-          }
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const data = await response.json();
+        console.log("Stitched image uploaded successfully:", data);
+
+        const parsedText = data.caption[0].generated_text;
+        const numbers = extractNumbersFromParsedText(parsedText, drawingCount);
+        console.log("Extracted numbers:", numbers);
+        setParsedNumbers(numbers);
+        setShowSummary(true);
+        setIsLoading(false);
+
+        // save result to supabase
+
+        return "Stitched image uploaded";
+      } catch (error) {
+        console.error("Error uploading stitched image:", error);
+        setIsLoading(false);
+        toast.error("An error occurred. Please try again.");
+        throw error;
       }
     },
   });
@@ -338,7 +312,6 @@ const DrawImage = ({
     }
   }, []);
 
-  console.log({ id });
   return (
     <div>
       <CanvasDraw
