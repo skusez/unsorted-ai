@@ -20,18 +20,18 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { FileIcon, DownloadIcon, TrashIcon } from "lucide-react";
-import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-import DrawingModal from "./DrawingModalV2";
+import DrawingModal from "./DrawingModal";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
+import { observer, useObservable } from "@legendapp/state/react";
 
-export const ProjectFiles = () => {
+export const ProjectFiles = observer(function ProjectFiles() {
   const supabase = createClient();
   const { projectId, userId } = useParamHelper();
   const queryClient = useQueryClient();
-  const [isDrawingModalOpen, setIsDrawingModalOpen] = useState(false);
+  const isOpen$ = useObservable(false);
 
   const getProjectFiles = async () => {
     const { data, error } = await supabase.storage
@@ -117,15 +117,8 @@ export const ProjectFiles = () => {
           </CardDescription>
         </CardContent>
         <CardFooter>
-          <Button onClick={() => setIsDrawingModalOpen(true)}>
-            Open Drawing
-          </Button>
-          <DrawingModal
-            isOpen={isDrawingModalOpen}
-            onClose={() => setIsDrawingModalOpen(false)}
-            projectId={projectId}
-            userId={userId!}
-          />
+          <Button onClick={() => isOpen$.set(true)}>Open Drawing</Button>
+          <DrawingModal isOpen$={isOpen$} />
         </CardFooter>
       </Card>
       {/* <Card>
@@ -194,7 +187,7 @@ export const ProjectFiles = () => {
       )}
     </div>
   );
-};
+});
 
 const ProjectFilesSkeleton = () => (
   <div className="grid gap-6">

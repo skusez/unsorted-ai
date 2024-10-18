@@ -2,6 +2,9 @@
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ["sharp", "onnxruntime-node"],
+    outputFileTracingIncludes: {
+      "/api/image-to-text": ["./temp-*"],
+    },
   },
   webpack: (config) => {
     config.externals.push("pino-pretty", "lokijs", "encoding");
