@@ -26,6 +26,7 @@ import DrawingModal from "./DrawingModal";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 import { observer, useObservable } from "@legendapp/state/react";
+import { notFound } from "next/navigation";
 
 export const ProjectFiles = observer(function ProjectFiles() {
   const supabase = createClient();
@@ -104,6 +105,7 @@ export const ProjectFiles = observer(function ProjectFiles() {
     return <ProjectFilesSkeleton />;
   }
 
+  if (!userId) notFound();
   return (
     <div className="grid gap-6">
       <Card>
@@ -118,7 +120,11 @@ export const ProjectFiles = observer(function ProjectFiles() {
         </CardContent>
         <CardFooter>
           <Button onClick={() => isOpen$.set(true)}>Open Drawing</Button>
-          <DrawingModal isOpen$={isOpen$} />
+          <DrawingModal
+            isOpen$={isOpen$}
+            user_id={userId}
+            project_id={projectId}
+          />
         </CardFooter>
       </Card>
       {/* <Card>

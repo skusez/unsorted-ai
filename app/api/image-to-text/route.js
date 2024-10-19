@@ -2,14 +2,18 @@ import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import PipelineSingleton from "./pipeline";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request) {
   let tempFilePath = "";
+  const supabase = createAdminClient();
   try {
     const formData = await request.formData();
     const image = formData.get("image");
+    const user_id = formData.get("user_id");
+    const project_id = formData.get("project_id");
 
     if (!image || typeof image !== "string") {
       return NextResponse.json(
@@ -39,20 +43,14 @@ export async function POST(request) {
     const base64Data = matches[2];
     const buffer = Buffer.from(base64Data, "base64");
 
+    const blob = new Blob([buffer], { type: `image/${imageType}` });
+
     // Create a unique filename
     const uniqueId = Date.now() + Math.random().toString(36).substring(2, 15);
-    tempFilePath = path.join(process.cwd(), `temp-${uniqueId}.${imageType}`);
-
-    await fs.writeFile(tempFilePath, buffer);
-    console.log("Temporary file created:", tempFilePath);
-
-    const stats = await fs.stat(tempFilePath);
-    console.log("File size:", stats.size);
-
-    if (stats.size === 0) {
-      throw new Error("Created file is empty");
-    }
-
+    const { data } = supabase.storage
+      .from("projects")
+      .upload(`${project_id}/${user_id}/temp-${uniqueId}.${imageType}`, blob);
+    tempFilePath = data.fullPath;
     // Generate caption for the image
     const classifier = await PipelineSingleton.getInstance();
     const caption = await classifier(tempFilePath);
@@ -69,7 +67,7 @@ export async function POST(request) {
     // Clean up: remove the temporary file
     if (tempFilePath) {
       try {
-        await fs.unlink(tempFilePath);
+        await supabase.from("projects").delete(tempFilePath);
         console.log("Temporary file deleted:", tempFilePath);
       } catch (error) {
         console.error("Error deleting temporary file:", error);
