@@ -47,13 +47,19 @@ export async function POST(request) {
 
     // Create a unique filename
     const uniqueId = Date.now() + Math.random().toString(36).substring(2, 15);
-    const { data } = supabase.storage
-      .from("projects")
+    const { data } = await supabase.storage
+      .from("tmp")
       .upload(`${project_id}/${user_id}/temp-${uniqueId}.${imageType}`, blob);
-    tempFilePath = data.fullPath;
+    tempFilePath = data.path;
     // Generate caption for the image
+    console.log(
+      "data",
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/tmp/${tempFilePath}`
+    );
     const classifier = await PipelineSingleton.getInstance();
-    const caption = await classifier(tempFilePath);
+    const caption = await classifier(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/tmp/${tempFilePath}`
+    );
 
     // Return the generated text along with the label
     return NextResponse.json({ caption });
@@ -67,7 +73,7 @@ export async function POST(request) {
     // Clean up: remove the temporary file
     if (tempFilePath) {
       try {
-        await supabase.from("projects").delete(tempFilePath);
+        await supabase.storage.from("tmp").delete(tempFilePath);
         console.log("Temporary file deleted:", tempFilePath);
       } catch (error) {
         console.error("Error deleting temporary file:", error);
