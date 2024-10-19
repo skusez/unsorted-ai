@@ -1,7 +1,7 @@
 {
   "functions": {
-    "api/image-to-text/route.js": {
-      "maxDuration": 30
+    "api/**/*.(js|ts)": {
+      "maxDuration": 20
     }
   }
 }

@@ -73,8 +73,7 @@ export async function POST(request) {
     // Clean up: remove the temporary file
     if (tempFilePath) {
       try {
-        await supabase.storage.from("tmp").delete(tempFilePath);
-        console.log("Temporary file deleted:", tempFilePath);
+        supabase.storage.from("tmp").remove(tempFilePath);
       } catch (error) {
         console.error("Error deleting temporary file:", error);
       }
