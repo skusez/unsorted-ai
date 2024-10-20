@@ -5,7 +5,7 @@ import PipelineSingleton from "./pipeline";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 export const dynamic = "force-dynamic";
-
+export const maxDuration = 30;
 export async function POST(request) {
   let tempFilePath = "";
   const supabase = createAdminClient();

@@ -2,6 +2,9 @@
   "functions": {
     "app/api/**/*.(js|ts)": {
       "maxDuration": 30
+    },
+    "app/api/image-to-text/route.js": {
+      "maxDuration": 30
     }
   },
   "regions": ["sin1"]
